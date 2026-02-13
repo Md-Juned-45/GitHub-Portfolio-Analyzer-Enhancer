@@ -174,9 +174,12 @@ export class GitHubService {
    */
   private static async fetchPinnedRepos(username: string): Promise<string[]> {
     try {
+      // FIX: Sanitize username to prevent GraphQL injection
+      const sanitizedUsername = username.replace(/[^a-zA-Z0-9-]/g, '');
+      
       const query = `
         query {
-          user(login: "${username}") {
+          user(login: "${sanitizedUsername}") {
             pinnedItems(first: 6, types: REPOSITORY) {
               nodes {
                 ... on Repository {
@@ -189,7 +192,8 @@ export class GitHubService {
       `;
 
       const response: any = await octokit.graphql(query);
-      return response.user.pinnedItems.nodes.map((node: any) => node.name);
+      // FIX: Add null checks for safety
+      return response?.user?.pinnedItems?.nodes?.map((node: any) => node.name) || [];
     } catch {
       return [];
     }
@@ -222,10 +226,11 @@ export class GitHubService {
   }> {
     try {
       // Get the most recent non-fork repos to analyze genuine activity
-      // Limit to 10 repos to balance API rate limits vs data accuracy
+      // FIX: Increased to 15 repos and sort by recency for better accuracy
       const recentRepos = repositories
         .filter((r) => !r.is_fork)  // Exclude forks (not original work)
-        .slice(0, 10);               // Top 10 most recently updated
+        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        .slice(0, 15);               // Top 15 most recently updated
 
       let totalCommits = 0;
       let lastCommitDate: string | null = null;
@@ -257,12 +262,22 @@ export class GitHubService {
       }
 
       // Calculate commit frequency (commits per month over last 6 months)
+      // FIX: Account for new accounts (<6 months old) to avoid unfairly low scores
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
       const recentCommits = commitDates.filter(
         (date) => new Date(date) > sixMonthsAgo
       );
-      const commitFrequency = (recentCommits.length / 6);
+      
+      // Calculate actual age of account activity (capped at 6 months)
+      const oldestCommit = commitDates.length > 0 
+        ? Math.min(...commitDates.map(d => new Date(d).getTime()))
+        : Date.now();
+      const accountAgeMonths = Math.min(6, Math.max(1, 
+        Math.ceil((Date.now() - oldestCommit) / (1000 * 60 * 60 * 24 * 30))
+      ));
+      
+      const commitFrequency = accountAgeMonths > 0 ? (recentCommits.length / accountAgeMonths) : 0;
 
       // Calculate active days
       const uniqueDays = new Set(

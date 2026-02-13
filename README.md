@@ -4,9 +4,6 @@
 
 A powerful AI-powered tool that analyzes GitHub profiles and provides actionable, recruiter-focused feedback to help students and early-career developers improve their portfolio.
 
-🔗 **[Live Demo](#)** | 📹 **[Video Walkthrough](#)**
-
-![GitHub Portfolio Analyzer Banner](https://via.placeholder.com/1200x400/1a1b26/ffffff?text=GitHub+Portfolio+Analyzer)
 
 ---
 
@@ -153,35 +150,6 @@ See what a recruiter sees in their first 60 seconds:
 
 ---
 
-## 🎥 Demo Video
-
-> **📹 [Watch the 5-minute walkthrough](#)**
-
-The demo video covers:
-
-1. **Problem Statement** - Why GitHub profiles fail to impress recruiters (30s)
-2. **Solution Overview** - What the tool does (1 min)
-3. **Live Analysis** - Analyzing a real GitHub profile (3 min)
-4. **Key Differentiators** - How we stand out vs existing tools (30s)
-
----
-
-## 📸 Screenshots
-
-### Landing Page
-
-![Landing Page](https://via.placeholder.com/800x500/1a1b26/ffffff?text=Landing+Page)
-
-### Analysis Results
-
-![Results Page](https://via.placeholder.com/800x500/1a1b26/ffffff?text=Analysis+Results)
-
-### Score Breakdown
-
-![Score Dimensions](https://via.placeholder.com/800x500/1a1b26/ffffff?text=Score+Dimensions)
-
----
-
 ## 🎯 Differentiation Strategy
 
 Unlike existing GitHub analyzers (GitSight, GitLook, etc.), we focus on:
@@ -274,7 +242,7 @@ MIT License - feel free to use this tool to improve your GitHub portfolio!
 
 ## 📧 Contact
 
-**Built by**: [Your Name]  
+**Built by**: Juned Pinjari  
 **GitHub**: [@Md-Juned-45](https://github.com/Md-Juned-45)  
 **Hackathon**: GitHub Portfolio Analyzer & Enhancer by UnsaidTalks
 

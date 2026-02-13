@@ -119,7 +119,8 @@ export class ScoringEngine {
     const qualityReadmes = topRepos.filter(
       (r) => r.has_readme && (r.readme_length || 0) > 500
     );
-    score += (qualityReadmes.length / Math.max(topRepos.length, 1)) * 50; // Up to 50 points
+    // FIX: Prevent division by zero when no repos exist
+    score += topRepos.length > 0 ? (qualityReadmes.length / topRepos.length) * 50 : 0; // Up to 50 points
 
     // Generate feedback
     const topReposWithoutReadme = topRepos.filter((r) => !r.has_readme);
@@ -152,7 +153,8 @@ export class ScoringEngine {
     let feedback = '';
 
     // Penalize very small repos (likely trivial)
-    const trivialRepos = nonForkRepos.filter((r) => r.size < 10);
+    // FIX: More conservative - only penalize truly empty repos
+    const trivialRepos = nonForkRepos.filter((r) => r.size < 5);
     score -= Math.min(trivialRepos.length * 5, 30);
 
     // Reward repos with proper structure (topics, descriptions)
@@ -416,7 +418,10 @@ export class ScoringEngine {
     }
 
     // Red flag: Too many trivial repos
-    const trivialRepos = nonForkRepos.filter((r) => r.size < 10 && !r.has_readme);
+    // FIX: Better detection - check for actually empty repos (no stars, no forks, tiny)
+    const trivialRepos = nonForkRepos.filter((r) => 
+      r.size < 10 && !r.has_readme && r.stars === 0 && r.forks === 0
+    );
     if (trivialRepos.length > 10) {
       flags.push({
         title: 'Portfolio Dilution',
