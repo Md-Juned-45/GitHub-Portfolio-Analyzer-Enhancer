@@ -466,7 +466,7 @@ export class NewScoringEngine {
     const suggestions: DetailedSuggestion[] = [];
     const { languageStats } = data;
     
-    // 0xarchit Integration: Filter out zero-contribution forks for language stats
+    // Gamification Integration: Filter out zero-contribution forks for language stats
     const realRepos = scoredRepos.filter(r => this.isRealProject(r));
     const languageSet = new Set(realRepos.map(r => r.language).filter((l): l is string => !!l));
     const uniqueLangs = languageSet.size;

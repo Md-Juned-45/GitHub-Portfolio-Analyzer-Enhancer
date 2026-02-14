@@ -56,12 +56,32 @@ interface AnalysisResult {
     avatar_url: string;
     followers: number;
     public_repos: number;
+    company?: string | null;
+    location?: string | null;
+    email?: string | null;
+    blog?: string | null;
+    twitter_username?: string | null;
+    total_issues?: number;
+    total_prs?: number;
+    contributed_to?: number;
   };
   score: number;
   profileType?: string;  // NEW: student/professional/open-source
   badges?: string[];     // NEW: Gamification
   profileTag?: string;   // NEW: Sarcastic tag
   projectIdeas?: ProjectIdea[]; // NEW: Tech-stack based ideas
+  
+  // Activity Data
+  activity: {
+    totalCommits: number;
+    lastCommitDate: string | null;
+    commitFrequency: number;
+    activeDays: number;
+    currentStreak: number;
+    longestStreak: number;
+    totalContributions: number;
+  };
+  
   dimensions: ScoreDimension[];
   redFlags?: RedFlag[];  // OPTIONAL: Old scoring engine only
   topSuggestions?: Array<{  // NEW: From new scoring engine
@@ -84,6 +104,7 @@ interface AnalysisResult {
     originalRepos: number;
     totalStars: number;
     languages: string[];
+    topLanguages?: Record<string, number>; // Language distribution
     lastCommitDate: string | null;
     fetchMode?: 'graphql' | 'rest'; // Which API was used
     aiModel?: string; // NEW: Hybrid AI tracking
@@ -170,6 +191,24 @@ export default function AnalyzePage() {
     <div className="min-h-screen bg-page text-text-primary p-4 md:p-8 font-sans transition-colors duration-300">
       <div className="max-w-7xl mx-auto space-y-6">
         
+        {/* Print-Only Header */}
+        <div className="hidden print:block pb-6 border-b border-black mb-6">
+          <div className="flex justify-between items-end">
+            <div>
+              <h1 className="text-3xl font-bold text-black tracking-tighter">GITHUB PORTFOLIO ANALYZER</h1>
+              <p className="text-sm text-gray-600 mt-1">Recruiter-Ready Profile Assessment Report</p>
+              <a href="https://github.com/Md-Juned-45" target="_blank" className="flex items-center gap-2 mt-2" style={{ textDecoration: 'none' }}>
+                <img src="https://github.com/Md-Juned-45.png" alt="Juned Pinjari" className="w-6 h-6 rounded-full border border-gray-300" />
+                <p className="text-xs text-gray-500">Created by <b>Juned Pinjari</b></p>
+              </a>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-mono font-bold text-black">@{username}</div>
+              <div className="text-xs text-gray-500 mt-1">Generated: {new Date().toLocaleDateString()}</div>
+            </div>
+          </div>
+        </div>
+
         {/* Navigation Bar */}
         <nav className="flex items-center justify-between border-b border-border-subtle pb-4">
           <button 
@@ -193,6 +232,14 @@ export default function AnalyzePage() {
              )}
              
              <ThemeToggle />
+             
+             <button
+               onClick={() => window.print()}
+               className="text-text-tertiary hover:text-text-primary text-xs font-mono uppercase tracking-widest transition-colors flex items-center gap-1"
+             >
+               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+               Download Report
+             </button>
 
              <a href={`https://github.com/${username}`} target="_blank" className="text-text-tertiary hover:text-text-primary text-xs font-mono uppercase tracking-widest transition-colors">
                View Source ↗
@@ -216,7 +263,46 @@ export default function AnalyzePage() {
                />
                <div>
                  <h1 className="text-2xl font-bold text-text-primary">{result.user.name || result.user.login}</h1>
-                 <p className="text-text-secondary font-mono text-sm">@{result.user.login}</p>
+                 <p className="text-text-secondary font-mono text-sm mb-3">@{result.user.login}</p>
+                 
+                 {/* Bio */}
+                 <p className="text-sm text-text-secondary mb-4 italic max-w-xs mx-auto leading-relaxed">
+                   {result.user.bio || "No bio available"}
+                 </p>
+
+                 {/* Profile Details */}
+                 <div className="flex flex-col gap-1.5 text-xs text-text-secondary w-full max-w-xs mx-auto mb-4 px-4">
+                   {result.user.company && (
+                     <div className="flex items-center gap-2">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary"><path d="M3 21h18"/><path d="M5 21V7l8-4 8 4v14"/><path d="M17 21v-8.8a2 2 0 0 0-2-2h-2.8a2 2 0 0 0-2 2V21"/></svg>
+                       <span className="truncate">{result.user.company}</span>
+                     </div>
+                   )}
+                   {result.user.location && (
+                     <div className="flex items-center gap-2">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                       <span className="truncate">{result.user.location}</span>
+                     </div>
+                   )}
+                   {result.user.email && (
+                     <div className="flex items-center gap-2">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                       <a href={`mailto:${result.user.email}`} className="hover:text-text-primary hover:underline truncate">{result.user.email}</a>
+                     </div>
+                   )}
+                   {result.user.blog && (
+                     <div className="flex items-center gap-2">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                       <a href={result.user.blog.startsWith('http') ? result.user.blog : `https://${result.user.blog}`} target="_blank" rel="noopener noreferrer" className="hover:text-text-primary hover:underline truncate text-blue-500">{result.user.blog}</a>
+                     </div>
+                   )}
+                   {result.user.twitter_username && (
+                     <div className="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-tertiary"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+                        <a href={`https://twitter.com/${result.user.twitter_username}`} target="_blank" rel="noopener noreferrer" className="hover:text-text-primary hover:underline truncate">@{result.user.twitter_username}</a>
+                     </div>
+                   )}
+                 </div>
                  
                  {/* NEW: Profile Type Badge */}
                  {result.profileType && (
@@ -231,24 +317,43 @@ export default function AnalyzePage() {
                    </div>
                  )}
 
-                  {/* Gamification Badges (0xarchit Style) */}
+                  {/* Gamification Badges */}
                   {result.badges && result.badges.length > 0 && (
                     <div className="flex flex-wrap gap-2 justify-center mt-3 animate-fade-in">
-                      {result.badges.map(badge => (
-                        <div key={badge} className="px-2 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded text-[10px] text-yellow-600 dark:text-yellow-500 uppercase tracking-wider font-mono flex items-center hover:bg-yellow-500/20 transition-colors cursor-help" title={`GitHub Achievement: ${badge}`}>
-                          {badge === 'pull-shark' && '🦈 '}
-                          {badge === 'yolo' && '🤠 '}
-                          {badge === 'quickdraw' && '⚡ '}
-                          {badge === 'starstruck' && '⭐ '}
-                          {badge === 'pair-extraordinaire' && '👯 '}
-                          {badge === 'famed-user' && '👑 '}
-                          {badge.replace(/-/g, ' ')}
-                        </div>
-                      ))}
+                      {result.badges.map(badge => {
+                        const badgeMap: Record<string, string> = {
+                          'pull-shark': 'https://github.githubassets.com/images/modules/profile/achievements/pull-shark-default.png',
+                          'yolo': 'https://github.githubassets.com/images/modules/profile/achievements/yolo-default.png',
+                          'quickdraw': 'https://github.githubassets.com/images/modules/profile/achievements/quickdraw-default.png',
+                          'starstruck': 'https://github.githubassets.com/images/modules/profile/achievements/starstruck-default.png',
+                          'pair-extraordinaire': 'https://github.githubassets.com/images/modules/profile/achievements/pair-extraordinaire-default.png',
+                          'famed-user': 'https://github.githubassets.com/images/modules/profile/achievements/galaxy-brain-default.png'
+                        };
+                        
+                        const imageUrl = badgeMap[badge];
+                        
+                        if (imageUrl) {
+                          return (
+                            <img 
+                              key={badge}
+                              src={imageUrl} 
+                              alt={badge} 
+                              className="w-12 h-12 hover:scale-110 transition-transform cursor-help"
+                              title={`GitHub Achievement: ${badge.replace(/-/g, ' ')}`}
+                            />
+                          );
+                        }
+                        
+                        return (
+                          <div key={badge} className="px-2 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded text-[10px] text-yellow-600 dark:text-yellow-500 uppercase tracking-wider font-mono flex items-center hover:bg-yellow-500/20 transition-colors cursor-help" title={`GitHub Achievement: ${badge}`}>
+                            {badge.replace(/-/g, ' ')}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
-                  {/* Sarcastic Profile Tag (0xarchit Style) */}
+                  {/* Sarcastic Profile Tag */}
                   {result.profileTag && (
                     <div className="mt-4 px-4 py-2 bg-pink-500/10 border border-pink-500/20 rounded-lg text-pink-600 dark:text-pink-400 text-sm font-mono italic text-center max-w-full animate-fade-in relative group cursor-default">
                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-page px-1 text-[8px] text-pink-700 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">AI Roast</span>
@@ -257,20 +362,12 @@ export default function AnalyzePage() {
                   )}
                </div>
                
-               <div className="grid grid-cols-3 gap-4 w-full pt-4 border-t border-border-subtle">
-                 <div className="space-y-1">
-                   <div className="text-xl font-bold text-text-primary">{result.user.followers}</div>
-                   <div className="text-[10px] text-text-tertiary uppercase tracking-wider">Followers</div>
-                 </div>
-                 <div className="space-y-1">
-                   <div className="text-xl font-bold text-text-primary">{result.metadata.totalRepos}</div>
-                   <div className="text-[10px] text-text-tertiary uppercase tracking-wider">Repos</div>
-                 </div>
-                 <div className="space-y-1">
-                   <div className="text-xl font-bold text-text-primary">{result.metadata.totalStars}</div>
-                   <div className="text-[10px] text-text-tertiary uppercase tracking-wider">Stars</div>
-                 </div>
-               </div>
+
+                   
+                   {/* Stats moved to main column */}
+
+                   {/* Original Stats Grid (Hidden or Removed) */}
+
             </div>
 
             {/* Score Card */}
@@ -312,6 +409,129 @@ export default function AnalyzePage() {
 
           {/* RIGHT COLUMN: Metrics & Insights (8 cols) */}
           <div className="lg:col-span-8 space-y-6">
+
+            {/* NEW: GitHub Activity Stats (Relocated) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                
+                {/* 1. General Stats */}
+                <div className="bg-card-subtle/50 rounded-xl p-4 border border-border-subtle col-span-1">
+                <h3 className="text-sm font-bold text-text-secondary mb-3 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+                    GitHub Statistics
+                </h3>
+                <div className="space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                    <span className="flex items-center gap-2 text-text-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        Total Stars Earned:
+                    </span>
+                    <span className="font-mono font-bold text-text-primary">{result.metadata.totalStars}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                    <span className="flex items-center gap-2 text-text-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Total Commits:
+                    </span>
+                    <span className="font-mono font-bold text-text-primary">{result.activity.totalCommits + (result.user.total_issues || 0) + (result.user.total_prs || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="flex items-center gap-2 text-text-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+                        Total PRs:
+                        </span>
+                        <span className="font-mono font-bold text-text-primary">{result.user.total_prs || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="flex items-center gap-2 text-text-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                        Total Issues:
+                        </span>
+                        <span className="font-mono font-bold text-text-primary">{result.user.total_issues || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="flex items-center gap-2 text-text-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        Contributed to:
+                        </span>
+                        <span className="font-mono font-bold text-text-primary">{result.user.contributed_to || 0}</span>
+                    </div>
+                </div>
+                </div>
+
+                {/* 2. Most Used Languages */}
+                <div className="bg-card-subtle/50 rounded-xl p-4 border border-border-subtle col-span-1">
+                <h3 className="text-sm font-bold text-text-secondary mb-3 text-blue-500">Language Distribution</h3>
+                <div className="space-y-4">
+                    <div className="flex h-3 w-full overflow-hidden rounded-full bg-border-subtle/30">
+                    {Object.entries(result.metadata.topLanguages || {})
+                        .sort(([, a], [, b]) => (b as number) - (a as number))
+                        .slice(0, 5)
+                        .map(([lang, count], index) => {
+                        const total = Object.values(result.metadata.topLanguages || {}).reduce((sum, c) => (sum as number) + (c as number), 0) as number;
+                        const percent = ((count as number) / total) * 100;
+                        const colors = ['bg-blue-500', 'bg-yellow-400', 'bg-red-500', 'bg-purple-500', 'bg-green-500'];
+                        return (
+                            <div 
+                            key={lang} 
+                            className={`${colors[index % colors.length]}`} 
+                            style={{ width: `${percent}%` }}
+                            />
+                        );
+                        })}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(result.metadata.topLanguages || {})
+                        .sort(([, a], [, b]) => (b as number) - (a as number))
+                        .slice(0, 4)
+                        .map(([lang, count], index) => {
+                        const total = Object.values(result.metadata.topLanguages || {}).reduce((sum, c) => (sum as number) + (c as number), 0) as number;
+                        const percent = ((count as number) / total) * 100;
+                        const colors = ['text-blue-500', 'text-yellow-400', 'text-red-500', 'text-purple-500', 'text-green-500'];
+                        const dotColors = ['bg-blue-500', 'bg-yellow-400', 'bg-red-500', 'bg-purple-500', 'bg-green-500'];
+                        return (
+                            <div key={lang} className="flex items-center gap-2 text-xs">
+                            <div className={`w-2 h-2 rounded-full ${dotColors[index % dotColors.length]}`} />
+                            <span className="text-text-secondary truncate">{lang}</span>
+                            <span className="text-text-primary font-mono ml-auto">{percent.toFixed(1)}%</span>
+                            </div>
+                        );
+                        })}
+                    </div>
+                </div>
+                </div>
+
+                {/* 3. Streaks & Contributions */}
+                <div className="bg-card-subtle/50 rounded-xl p-4 border border-border-subtle col-span-1 flex flex-col justify-between">
+                <div className="flex justify-between items-start mb-4">
+                    <div className="text-center">
+                        <div className="text-2xl font-bold text-text-primary">{result.activity.totalContributions || result.activity.totalCommits}</div>
+                        <div className="text-[10px] text-text-tertiary uppercase tracking-wider mt-1">Total Contributions</div>
+                        <div className="text-[10px] text-text-tertiary opacity-50">Last 6 Months</div>
+                    </div>
+                    <div className="relative w-16 h-16 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90">
+                        <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="none" className="text-border-subtle" />
+                        <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="175" strokeDashoffset={175 - (175 * 60 / 100)} className="text-orange-500" strokeLinecap="round" />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-orange-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+                            <span className="text-sm font-bold">{result.activity.currentStreak || 0}</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 border-t border-border-subtle pt-4">
+                    <div className="text-center">
+                        <div className="text-lg font-bold text-text-primary">{result.activity.longestStreak || 0}</div>
+                        <div className="text-[10px] text-text-tertiary uppercase tracking-wider">Longest Streak</div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-lg font-bold text-text-primary">{result.activity.activeDays || 0}</div>
+                        <div className="text-[10px] text-text-tertiary uppercase tracking-wider">Active Days</div>
+                    </div>
+                </div>
+                </div>
+
+            </div>
             
             {/* Metric Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -504,6 +724,20 @@ export default function AnalyzePage() {
                </a>
              ))}
            </div>
+        </div>
+
+        {/* Print-Only Footer */}
+        <div className="hidden print:block pt-6 border-t border-black mt-6 flex justify-between items-center text-xs text-gray-500">
+          <div className="flex items-center gap-2">
+            <span className="opacity-70">GitHub Portfolio Analyzer &copy; {new Date().getFullYear()}</span>
+            <span className="opacity-50">•</span>
+            <a href="https://github.com/Md-Juned-45" target="_blank" className="flex items-center gap-1.5" style={{ textDecoration: 'none' }}>
+              <span className="opacity-70">Created by</span>
+              <img src="https://github.com/Md-Juned-45.png" alt="Juned Pinjari" className="w-5 h-5 rounded-full border border-gray-300" />
+              <b className="text-black">Juned Pinjari</b>
+            </a>
+          </div>
+          <p>Detailed Report for @{username}</p>
         </div>
 
       </div>

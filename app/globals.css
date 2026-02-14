@@ -254,3 +254,92 @@ h6 {
 .delay-300 {
   animation-delay: 300ms;
 }
+
+/* ========================================
+   PRINT STYLES (PDF Export)
+   ======================================== */
+@media print {
+  @page {
+    margin: 10mm;
+    size: auto;
+  }
+
+  /* Reset background for reliable printing */
+  body, .bg-page {
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    font-size: 10pt; /* Slightly smaller text for better fit */
+  }
+  
+  /* Show explicit print headers/footers */
+  .hidden.print\:block {
+    display: block !important;
+  }
+
+  /* Reset cards to be distinctive print sections */
+  .card, .bg-card, .bg-card-hover {
+    background: #ffffff !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    color: #000 !important;
+    break-inside: avoid; /* Prevent splitting cards across pages */
+    margin-bottom: 1rem !important;
+    padding: 1rem !important;
+  }
+
+  /* Ensure text contrast */
+  .text-text-primary, .text-text-secondary, .text-text-tertiary {
+    color: #000 !important;
+  }
+  
+  /* Hide navigation controls and buttons */
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Make sure links are underlined but clean */
+  a {
+    text-decoration: none !important;
+    color: #000 !important;
+  }
+  
+  /* Progress bars should print visibly */
+  .progress-bg {
+    background: #eee !important;
+    border: 1px solid #ccc !important;
+  }
+  .progress-fill {
+    background: #000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Grid Layout Adjustments for A4 */
+  .grid {
+    display: block !important;
+  }
+  
+  /* Reset grid items to full width */
+  .grid > * {
+    width: 100% !important;
+    margin-bottom: 2rem;
+    page-break-inside: avoid;
+  }
+
+  /* Badge styling fix for print */
+  .badge, .rounded-full {
+    border: 1px solid #000 !important;
+    color: #000 !important;
+    background: transparent !important;
+  }
+  
+  /* Ensure charts/bars print clearly */
+  .bg-green-500, .bg-yellow-500, .bg-red-500, .bg-blue-500 {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

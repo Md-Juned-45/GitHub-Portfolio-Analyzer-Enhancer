@@ -45,10 +45,10 @@ export default function HomePage() {
           </div>
           
           <h1 className="text-5xl md:text-6xl font-bold tracking-tighter text-text-primary leading-tight">
-            PORTFOLIO
+            GITHUB PORTFOLIO
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-b from-black to-neutral-500 dark:from-white dark:to-white/40">
-              INTELLIGENCE
+              ANALYZER
             </span>
           </h1>
           

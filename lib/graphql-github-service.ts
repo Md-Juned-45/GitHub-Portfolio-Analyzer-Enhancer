@@ -14,7 +14,7 @@ import { GitHubAnalysisData, Repository, GitHubUser } from './github-service';
 const GITHUB_GRAPHQL = 'https://api.github.com/graphql';
 
 /**
- * 0xarchit Pattern: Token Rotation
+ * Token Rotation
  * Rotates through multiple GitHub tokens to multiply rate limits.
  */
 const getGitHubToken = () => {
@@ -54,7 +54,18 @@ const PROFILE_QUERY = `
       createdAt
       updatedAt
       followers { totalCount }
+      followers { totalCount }
       following { totalCount }
+      company
+      location
+      email
+      websiteUrl
+      twitterUsername
+      
+      # Global Stats
+      issues { totalCount }
+      pullRequests { totalCount }
+      repositoriesContributedTo { totalCount }
       
       # Pinned repositories (prioritized for scoring)
       pinnedItems(first: 6, types: REPOSITORY) {
@@ -289,6 +300,14 @@ export class GraphQLGitHubService {
         public_repos: userData.repositories.totalCount,
         created_at: userData.createdAt,
         updated_at: userData.updatedAt,
+        company: userData.company,
+        location: userData.location,
+        email: userData.email,
+        blog: userData.websiteUrl,
+        twitter_username: userData.twitterUsername,
+        total_issues: userData.issues.totalCount,
+        total_prs: userData.pullRequests.totalCount,
+        contributed_to: userData.repositoriesContributedTo.totalCount,
       };
 
       // Combine pinned and regular repos (raw GraphQL data)
@@ -317,7 +336,7 @@ export class GraphQLGitHubService {
       // Calculate language stats
       const languageStats = this.calculateLanguageStats(repositories);
 
-      // Detect badges (0xarchit pattern)
+      // Detect badges
       const badges = await this.detectBadges(username);
 
       return {
@@ -331,6 +350,9 @@ export class GraphQLGitHubService {
           lastCommitDate: activityData.lastCommitDate,
           commitFrequency: activityData.commitFrequency,
           activeDays: activityData.activeDays,
+          currentStreak: activityData.currentStreak,
+          longestStreak: activityData.longestStreak,
+          totalContributions: activityData.totalContributions,
         },
       };
 
@@ -385,48 +407,118 @@ export class GraphQLGitHubService {
    * Calculate activity metrics from repositories (raw GraphQL data)
    */
   private static calculateActivityData(repositories: any[]) {
-    let totalCommits = 0;
-    let lastCommitDate: string | null = null;
-    const commitDates: Date[] = [];
+    try {
+      let totalCommits = 0;
+      let lastCommitDate: string | null = null;
+      const commitDates: Date[] = [];
 
-    repositories.forEach((repo: any) => {
-      const history = repo.defaultBranchRef?.target?.history;
-      if (history) {
-        totalCommits += history.totalCount || 0;
-        
-        history.nodes?.forEach((commit: any) => {
-          const date = new Date(commit.committedDate);
-          commitDates.push(date);
+      repositories.forEach((repo: any) => {
+        const history = repo.defaultBranchRef?.target?.history;
+        if (history) {
+          totalCommits += history.totalCount || 0;
           
-          if (!lastCommitDate || date > new Date(lastCommitDate)) {
-            lastCommitDate = commit.committedDate;
+          history.nodes?.forEach((commit: any) => {
+            const date = new Date(commit.committedDate);
+            commitDates.push(date);
+            
+            if (!lastCommitDate || date > new Date(lastCommitDate)) {
+              lastCommitDate = commit.committedDate;
+            }
+          });
+        }
+      });
+
+      // Calculate commit frequency (commits per month over last 6 months)
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      const recentCommits = commitDates.filter(d => d >= sixMonthsAgo);
+      const commitFrequency = recentCommits.length > 0 ? (recentCommits.length / 6) : 0;
+      
+      const uniqueDays = new Set(commitDates.map(d => d.toDateString()));
+      const activeDays = uniqueDays.size;
+
+      // Calculate Streaks
+      const sortedDates = Array.from(uniqueDays)
+        .map(d => new Date(d))
+        .sort((a, b) => b.getTime() - a.getTime());
+      
+      let currentStreak = 0;
+      let longestStreak = 0;
+      let tempStreak = 0;
+      
+      // Check current streak
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      if (sortedDates.length > 0) {
+        const lastCommit = sortedDates[0];
+        const isRecent = 
+          lastCommit.toDateString() === today.toDateString() || 
+          lastCommit.toDateString() === yesterday.toDateString();
+          
+        if (isRecent) {
+          currentStreak = 1;
+          for (let i = 0; i < sortedDates.length - 1; i++) {
+            const curr = sortedDates[i];
+            const next = sortedDates[i + 1];
+            const diffTime = Math.abs(curr.getTime() - next.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            if (diffDays === 1) {
+              currentStreak++;
+            } else {
+              break;
+            }
           }
-        });
+        }
       }
-    });
 
-    // Calculate commit frequency (commits per month over last 6 months)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    
-    const recentCommits = commitDates.filter(d => d >= sixMonthsAgo);
-    const commitFrequency = (recentCommits.length / 6) || 0;
+      // Check longest streak
+      if (sortedDates.length > 0) {
+        tempStreak = 1;
+        longestStreak = 1;
+        for (let i = 0; i < sortedDates.length - 1; i++) {
+          const curr = sortedDates[i];
+          const next = sortedDates[i + 1];
+          const diffDays = Math.ceil(Math.abs(curr.getTime() - next.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (diffDays === 1) {
+            tempStreak++;
+          } else {
+            tempStreak = 1;
+          }
+          longestStreak = Math.max(longestStreak, tempStreak);
+        }
+      }
 
-    // Calculate active days
-    const uniqueDays = new Set(commitDates.map(d => d.toDateString()));
-    const activeDays = uniqueDays.size;
-
-    return {
-      totalCommits,
-      lastCommitDate,
-      commitFrequency,
-      activeDays,
-    };
+      return {
+        totalCommits,
+        lastCommitDate,
+        commitFrequency,
+        activeDays,
+        currentStreak,
+        longestStreak,
+        totalContributions: totalCommits, 
+      };
+    } catch (error) {
+      console.error('Error calculating activity data:', error);
+      return {
+        totalCommits: 0,
+        lastCommitDate: null,
+        commitFrequency: 0,
+        activeDays: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        totalContributions: 0,
+      };
+    }
   }
 
   /**
    * Check if a user has a specific GitHub achievement badge
-   * Uses HEAD request to avoid API costs (0xarchit pattern)
+   * Uses HEAD request to avoid API costs
    */
   private static async checkAchievementStatus(username: string, slug: string): Promise<string | null> {
     try {

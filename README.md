@@ -64,6 +64,23 @@ We don't just say "Fix your docs." We say:
 - **Red Flag Detection**: Warns about "tutorial hell" (only forks), "ghost town" (no recent activity), or "mystery code" (no docs).
 - **Quick Wins**: Tasks you can do in <30 mins to boost your score immediately.
 
+### 5. **Advanced GitHub Stats & Metrics** 📊
+
+- **Global Activity**: Total commits, PRs, issues, and contributions across all repositories.
+- **Streak Tracking**: Visualizes current and longest contribution streaks to show consistency.
+- **Language Breakdown**: "Most Used Languages" graph to showcase technical breadth.
+
+### 6. **Gamified Profile Badges** 🏆
+
+- **Smart Classification**: Auto-detects if you're a **Student**, **Pro**, or **Open Source Contributor**.
+- **Achievement Unlocks**: Displays GitHub achievements like "Pull Shark", "YOLO", and "Quickdraw".
+- **"AI Roast" Mode**: A sarcastic, fun analysis tag that gives you a reality check (e.g., _"The Fork Collector"_).
+
+### 7. **Export to PDF Report** 📄
+
+- **One-Click Download**: Turn your analysis into a professional, clean PDF report.
+- **Print-Optimized**: Automatic styling removes UI elements for a distraction-free document.
+
 ---
 
 ## 🛠️ Tech Stack
@@ -106,10 +123,6 @@ We don't just say "Fix your docs." We say:
 
    # Get from https://aistudio.google.com/app/apikey
    GEMINI_API_KEY=your_gemini_key_here
-
-   # Optional: Get from https://inference.cerebras.ai
-   # Uses Llama 3.3 for hybrid analysis (Layer 5)
-   CEREBRAS_API_KEY=your_cerebras_key_here
    ```
 
 3. **Run Locally**

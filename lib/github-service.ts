@@ -37,6 +37,14 @@ export interface GitHubUser {
   public_repos: number;        // Total public repositories
   created_at: string;          // Account creation date
   updated_at: string;          // Last profile update
+  company?: string | null;     // Company or organization
+  location?: string | null;    // User location
+  email?: string | null;       // Public email
+  blog?: string | null;        // Website or blog URL
+  twitter_username?: string | null; // Twitter handle
+  total_issues?: number;       // Global issues created
+  total_prs?: number;          // Global PRs created
+  contributed_to?: number;     // Repos contributed to
 }
 
 /**
@@ -78,6 +86,9 @@ export interface GitHubAnalysisData {
     lastCommitDate: string | null;
     commitFrequency: number; // commits per month average over last 6 months
     activeDays: number;
+    currentStreak: number;
+    longestStreak: number;
+    totalContributions: number; // Total commits + issues + PRs
   };
   badges?: string[]; // Gamification badges (pull-shark, yolo, etc.)
 }
@@ -161,6 +172,11 @@ export class GitHubService {
           public_repos: user.public_repos,
           created_at: user.created_at || '',
           updated_at: user.updated_at || '',
+          company: user.company,
+          location: user.location,
+          email: user.email,
+          blog: user.blog,
+          twitter_username: user.twitter_username,
         },
         repositories,
         pinnedRepos,
@@ -170,6 +186,9 @@ export class GitHubService {
           lastCommitDate: activityData.lastCommitDate,
           commitFrequency: activityData.commitFrequency,
           activeDays: activityData.activeDays,
+          currentStreak: activityData.currentStreak || 0,
+          longestStreak: activityData.longestStreak || 0,
+          totalContributions: activityData.totalContributions || 0,
         },
       };
     } catch (error: any) {
@@ -237,6 +256,9 @@ export class GitHubService {
     lastCommitDate: string | null;
     commitFrequency: number;
     activeDays: number;
+    currentStreak: number;
+    longestStreak: number;
+    totalContributions: number;
   }> {
     try {
       // Get the most recent non-fork repos to analyze genuine activity
@@ -297,12 +319,72 @@ export class GitHubService {
       const uniqueDays = new Set(
         commitDates.map((date) => new Date(date).toLocaleDateString())
       );
+      
+      // Calculate Streaks
+      const sortedDates = Array.from(uniqueDays)
+        .map(d => new Date(d))
+        .sort((a, b) => b.getTime() - a.getTime());
+      
+      let currentStreak = 0;
+      let longestStreak = 0;
+      let tempStreak = 0;
+      
+      // Check current streak (consecutive days starting from most recent)
+      // Allow 24-48h gap for "current" to account for timezones/today
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      if (sortedDates.length > 0) {
+        const lastCommit = sortedDates[0];
+        const isRecent = 
+          lastCommit.toDateString() === today.toDateString() || 
+          lastCommit.toDateString() === yesterday.toDateString();
+          
+        if (isRecent) {
+          currentStreak = 1;
+          for (let i = 0; i < sortedDates.length - 1; i++) {
+            const curr = sortedDates[i];
+            const next = sortedDates[i + 1];
+            const diffTime = Math.abs(curr.getTime() - next.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            if (diffDays === 1) {
+              currentStreak++;
+            } else {
+              break;
+            }
+          }
+        }
+      }
+
+      // Calculate longest streak
+      if (sortedDates.length > 0) {
+        tempStreak = 1;
+        longestStreak = 1;
+        for (let i = 0; i < sortedDates.length - 1; i++) {
+          const curr = sortedDates[i];
+          const next = sortedDates[i + 1];
+          const diffTime = Math.abs(curr.getTime() - next.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (diffDays === 1) {
+            tempStreak++;
+          } else {
+            tempStreak = 1;
+          }
+          longestStreak = Math.max(longestStreak, tempStreak);
+        }
+      }
 
       return {
         totalCommits,
         lastCommitDate,
         commitFrequency,
         activeDays: uniqueDays.size,
+        currentStreak,
+        longestStreak,
+        totalContributions: totalCommits, // Approximation for REST
       };
     } catch {
       return {
@@ -310,6 +392,9 @@ export class GitHubService {
         lastCommitDate: null,
         commitFrequency: 0,
         activeDays: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        totalContributions: 0,
       };
     }
   }

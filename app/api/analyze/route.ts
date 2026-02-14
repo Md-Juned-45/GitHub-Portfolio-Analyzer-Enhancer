@@ -76,11 +76,21 @@ export async function GET(request: NextRequest) {
       profileSummary: aiInsights.profileSummary,
       profileTag: aiInsights.profileTag, // NEW: Sarcastic tag
       projectIdeas: aiInsights.projectIdeas, // NEW: Project ideas
+      activity: {
+        totalCommits: githubData.totalCommits,
+        lastCommitDate: githubData.activityData.lastCommitDate,
+        commitFrequency: githubData.activityData.commitFrequency,
+        activeDays: githubData.activityData.activeDays,
+        currentStreak: (githubData.activityData as any).currentStreak || 0,
+        longestStreak: (githubData.activityData as any).longestStreak || 0,
+        totalContributions: (githubData.activityData as any).totalContributions || 0,
+      },
       metadata: {
         totalRepos: githubData.repositories.length,
         originalRepos: githubData.repositories.filter((r) => !r.is_fork).length,
         totalStars: githubData.repositories.reduce((sum, r) => sum + r.stars, 0),
         languages: Object.keys(githubData.languageStats),
+        topLanguages: githubData.languageStats, // For language graph
         lastCommitDate: githubData.activityData.lastCommitDate,
         fetchMode,
         aiModel: aiInsights.modelUsed, // NEW: Hybrid AI tracking

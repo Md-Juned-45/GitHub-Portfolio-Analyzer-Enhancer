@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'GitHub Portfolio Analyzer - Recruiter-Ready Profile Assessment',
   description: 'Analyze your GitHub profile and get actionable feedback from a recruiter\'s perspective. Find out what makes your portfolio stand out.',
+  icons: {
+    icon: '/icon.svg',
+  },
 }
 
 import { ThemeProvider } from './providers'
