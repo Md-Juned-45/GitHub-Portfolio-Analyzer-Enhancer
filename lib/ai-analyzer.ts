@@ -28,8 +28,7 @@ import { PortfolioScore } from './scoring-engine';
 
 // Initialize Gemini AI client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-// Use Gemini 2.0 Flash Exp for fast, high-quality responses
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+const model = genAI.getGenerativeModel({ model: 'gemma-3-27b-it' });  // Changed from gemini-2.0-flash-exp to stable versionfor fast, high-quality responses
 
 export interface ActionableSuggestion {
   title: string;
@@ -89,16 +88,24 @@ export class AIAnalyzer {
 - Portfolio Score: ${score.totalScore}/100
     `.trim();
 
-    // Top repos detail
+    // Top repos detail - ENHANCEMENT: Include README snippet and code quality
     const topReposDetail = score.topRepos
       .map(
-        (r: Repository) =>
-          `  • ${r.name}: ${r.description || 'No description'} (★${r.stars}, ${r.language || 'Unknown'}, README: ${r.has_readme ? 'Yes' : 'No'})`
+        (r: Repository) => {
+          const qualityIndicators = r.code_quality 
+            ? `CI:${r.code_quality.hasCI ? '✓' : '✗'} Tests:${r.code_quality.hasTests ? '✓' : '✗'} TS:${r.code_quality.hasTypeScript ? '✓' : '✗'}`
+            : 'Quality: Unknown';
+          const readmeSnippet = r.readme_content 
+            ? `\n    README Preview: "${r.readme_content.slice(0, 300).replace(/\n/g, ' ')}..."`
+            : '\n    README: Missing';
+          return `  • ${r.name}: ${r.description || 'No description'} (★${r.stars}, ${r.language || 'Unknown'})
+    ${qualityIndicators}${readmeSnippet}`;
+        }
       )
       .join('\n');
 
-    // Red flags
-    const redFlagsText = score.redFlags.length > 0
+    // Red flags (optional for new scoring engine)
+    const redFlagsText = score.redFlags && score.redFlags.length > 0
       ? score.redFlags.map((f) => `  • [${f.severity.toUpperCase()}] ${f.title}: ${f.description}`).join('\n')
       : '  • None detected';
 
@@ -191,19 +198,21 @@ Generate the JSON now:`;
     const { repositories, activityData, pinnedRepos } = data;
     const nonForkRepos = repositories.filter((r) => !r.is_fork);
 
-    // Generate rule-based suggestions from red flags and low scores
-    score.redFlags.forEach((flag) => {
-      if (flag.severity === 'high') {
-        suggestions.push({
-          title: flag.title,
-          description: flag.description,
-          priority: 'high',
-          effort: 'low',
-          impact: 'high',
-          timeEstimate: '30 minutes',
-        });
-      }
-    });
+    // Generate rule-based suggestions from red flags and low scores (if available)
+    if (score.redFlags) {
+      score.redFlags.forEach((flag) => {
+        if (flag.severity === 'high') {
+          suggestions.push({
+            title: flag.title,
+            description: flag.description,
+            priority: 'high',
+            effort: 'low',
+            impact: 'high',
+            timeEstimate: '30 minutes',
+          });
+        }
+      });
+    }
 
     // Add suggestions for low-scoring dimensions
     score.dimensions
@@ -228,7 +237,7 @@ Generate the JSON now:`;
 
     return {
       suggestions: suggestions.slice(0, 5),
-      recruiterPerspective: `This profile shows ${score.totalScore < 50 ? 'significant room for improvement' : score.totalScore < 70 ? 'moderate potential with key gaps' : 'strong fundamentals'}. ${score.redFlags.length > 0 ? 'Address critical red flags immediately.' : 'Focus on consistency and documentation.'}`,
+      recruiterPerspective: `This profile shows ${score.totalScore < 50 ? 'significant room for improvement' : score.totalScore < 70 ? 'moderate potential with key gaps' : 'strong fundamentals'}. ${score.redFlags && score.redFlags.length > 0 ? 'Address critical red flags immediately.' : 'Focus on consistency and documentation.'}`,
       quickWins,
       profileSummary: `Portfolio score: ${score.totalScore}/100. ${score.strengths.length > 0 ? `Strengths: ${score.strengths.join(', ')}.` : ''}`,
     };

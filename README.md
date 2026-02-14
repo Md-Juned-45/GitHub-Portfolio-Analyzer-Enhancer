@@ -1,95 +1,78 @@
-# GitHub Portfolio Analyzer & Enhancer
+# GitHub Portfolio Analyzer & Enhancer 🚀
 
-> **Turn your repositories into recruiter-ready proof**
+> **"Turn your GitHub profile into a recruiter magnet."**
 
-A powerful AI-powered tool that analyzes GitHub profiles and provides actionable, recruiter-focused feedback to help students and early-career developers improve their portfolio.
+A powerful, AI-driven tool designed specifically for **students and early-career developers** to analyze their GitHub portfolios, identify red flags, and get actionable, recruiter-focused feedback.
 
+![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue) ![Gemini AI](https://img.shields.io/badge/AI-Gemini%201.5%20Flash-orange) ![GraphQL](https://img.shields.io/badge/GitHub-GraphQL-pink)
 
 ---
 
 ## 🎯 The Problem
 
-For many students and developers, GitHub is their primary portfolio. Yet most profiles fail to communicate real skill, impact, or consistency to recruiters due to:
+Most student portfolios fail to get interviews because:
 
-- ❌ Incomplete READMEs and poor documentation
-- ❌ Unclear project structure and organization
-- ❌ No understanding of what recruiters actually look for
-- ❌ Lack of objective feedback on portfolio quality
-- ❌ Projects that don't signal real-world relevance
+- ❌ **They look generic** (class projects, tutorial clones).
+- ❌ **They lack documentation** (recruiters skip repos without READMEs).
+- ❌ **They show no impact** (just code, no "what/why/how").
+- ❌ **They lack consistency** (bursts of commits vs. steady habits).
 
-**A strong GitHub profile opens doors. A weak one silently closes them.**
+Recruiters spend **<60 seconds** on a profile. If they don't see value immediately, they move on.
 
----
+## ✨ The Solution
 
-## ✨ Our Solution
+This isn't just a stats viewer. It's an **intelligent career coach** that:
 
-This tool provides:
-
-1. **📊 Objective GitHub Portfolio Score (0-100)** - Data-driven assessment across 6 key dimensions
-2. **🚨 Red Flag Detection** - Identifies critical issues recruiters notice immediately
-3. **💡 AI-Powered Insights** - Gemini 2.0 generates specific, actionable suggestions
-4. **⚡ Quick Wins** - High-impact improvements you can make in under 1 hour
-5. **👔 Recruiter Perspective** - See exactly what hiring managers see in 60 seconds
+1.  **🕵️ Detects your profile type** (Student, Professional, or Open Source Contributor).
+2.  **⚖️ Adjusts scoring logic** based on your level (e.g., students aren't penalized for lacking 10k stars).
+3.  **🧠 Uses Gemini 1.5 Flash AI** to read your code and give _specific_ advice (e.g., "Add a demo link to repo X").
+4.  **⚡ Optimizes for speed** using GitHub GraphQL API (analyzing full profiles in seconds).
 
 ---
 
 ## 🚀 Key Features
 
-### 1. **6-Dimension Scoring System**
+### 1. **Student-Centric Scoring Engine** 🎓
 
-Each dimension includes:
+Unlike other tools that just count stars, we analyze **6 key dimensions** weighted for potential:
 
-- Score (0-100)
-- Weight in overall score
-- Specific feedback
-- **"Why it matters to recruiters"** explanation
+| Dimension                | Weight | Why It Matters                                    |
+| ------------------------ | ------ | ------------------------------------------------- |
+| **Code Quality**         | 20%    | Clean code, TS habits, linting setup.             |
+| **Project Impact**       | 20%    | detailed READMEs, demo links, "Why I built this". |
+| **Current & Active**     | 20%    | Recent commits, not just old forks.               |
+| **Production Readiness** | 15%    | CI/CD, tests, ENV handling.                       |
+| **Technical Skill**      | 15%    | Framework variety, complexity.                    |
+| **Community Trust**      | 10%    | PRs, issues, collaboration.                       |
 
-| Dimension                      | Weight | What We Analyze                                     |
-| ------------------------------ | ------ | --------------------------------------------------- |
-| 📄 **Documentation Quality**   | 20%    | README presence, length, quality in top repos       |
-| 🏗️ **Code Structure**          | 15%    | Repository organization, descriptions, topics       |
-| 📈 **Activity Consistency**    | 20%    | Commit frequency, recency, active development       |
-| 📌 **Repository Organization** | 15%    | Pinned repos, profile bio, repo descriptions        |
-| 🌟 **Project Impact**          | 15%    | Stars, original work vs forks, real-world relevance |
-| 💻 **Technical Depth**         | 15%    | Language diversity, modern frameworks, complexity   |
+_Scores are auto-adjusted: A student with good READMEs can score higher than a senior dev with empty repos._
 
-### 2. **Red Flag Detection**
+### 2. **AI-Powered Analysis (Gemini 1.5 Flash)** 🤖
 
-Automatically identifies deal-breakers:
+We don't just say "Fix your docs." We say:
 
-- Missing READMEs in visible repos
-- Dormant accounts (6+ months inactive)
-- Only forked repositories (no original work)
-- No pinned repositories
-- Portfolio dilution (too many trivial repos)
+> _"Your 'E-commerce-App' is a strong project but lacks a live demo. Deploy it to Vercel and add the link to the description to boost your Impact score by 15 points."_
 
-### 3. **AI-Powered Actionable Suggestions**
+### 3. **Smart & Efficient Data Fetching** ⚡
 
-Using **Google Gemini 2.0**, we generate:
+- **GraphQL-First Architecture**: Fetches user, repos, commits, and file trees in **2-3 API calls** (vs ~130+ widely used by other tools).
+- **Auto-Fallback**: Automatically switches to REST API if GraphQL fails or is blocked.
+- **Resilient**: Works even with strict rate limits.
 
-- 5-7 specific, prioritized improvement suggestions
-- **Not generic advice** - mentions actual repo names and specific actions
-- Ranked by **Impact/Effort ratio** (Quick Wins first)
-- Time estimates for each suggestion (e.g., "30 minutes", "2 hours")
+### 4. **Recruiter-Ready Insights** 👔
 
-### 4. **Recruiter Preview Mode**
-
-See what a recruiter sees in their first 60 seconds:
-
-- First impression summary
-- Top strengths that stand out
-- Concerns or red flags
-- Overall hiring signal
+- **Red Flag Detection**: Warns about "tutorial hell" (only forks), "ghost town" (no recent activity), or "mystery code" (no docs).
+- **Quick Wins**: Tasks you can do in <30 mins to boost your score immediately.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Next.js 14 (App Router), React, TypeScript, Tailwind CSS v4
-- **Backend**: Next.js API Routes
-- **APIs**:
-  - GitHub REST API + GraphQL (via Octokit)
-  - Google Gemini 2.0 Flash Exp (AI analysis)
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS v4
+- **Data Fetching**: GitHub GraphQL API + Octokit (REST fallback)
+- **AI Model**: Google Gemini 1.5 Flash
 - **Deployment**: Vercel
 
 ---
@@ -98,156 +81,50 @@ See what a recruiter sees in their first 60 seconds:
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- GitHub Personal Access Token ([Get one here](https://github.com/settings/tokens))
-- Google Gemini API Key ([Get one here](https://aistudio.google.com/app/apikey))
+- Node.js 18+
+- GitHub Personal Access Token (`public_repo` scope)
+- Google Gemini API Key (Free tier works great)
 
 ### Steps
 
-1. **Clone the repository**
+1. **Clone & Install**
 
    ```bash
    git clone https://github.com/Md-Juned-45/GitHub-Portfolio-Analyzer-Enhancer.git
    cd GitHub-Portfolio-Analyzer-Enhancer
-   ```
-
-2. **Install dependencies**
-
-   ```bash
    npm install
    ```
 
-3. **Set up environment variables**
-
-   ```bash
-   # Copy the example file
-   cp .env.local.example .env.local
-   ```
-
-   Edit `.env.local` and add your API keys:
+2. **Configure Environment**
+   Create a `.env.local` file:
 
    ```env
-   # GitHub Personal Access Token (needs 'public_repo' scope)
-   GITHUB_TOKEN=your_github_token_here
+   # Get from https://github.com/settings/tokens
+   GITHUB_TOKEN=your_github_pat_here
 
-   # Google Gemini API Key
-   GEMINI_API_KEY=your_gemini_api_key_here
+   # Get from https://aistudio.google.com/app/apikey
+   GEMINI_API_KEY=your_gemini_key_here
    ```
 
-4. **Run the development server**
-
+3. **Run Locally**
    ```bash
    npm run dev
    ```
-
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-5. **Build for production**
-   ```bash
-   npm run build
-   npm start
-   ```
+   Open `http://localhost:3000` to start analyzing!
 
 ---
 
-## 🎯 Differentiation Strategy
+## 🤝 Contributing
 
-Unlike existing GitHub analyzers (GitSight, GitLook, etc.), we focus on:
-
-1. **✅ Recruiter-Specific Scoring** - Each dimension explicitly explains "why recruiters care"
-2. **✅ Brutal Honesty** - "Archive this repo" instead of generic "improve documentation"
-3. **✅ Priority Matrix** - Suggestions ranked by High Impact/Low Effort first
-4. **✅ Red Flag Callouts** - Explicitly name deal-breakers recruiters notice
-5. **✅ Specific Feedback** - Mentions actual repo names, not vague advice
-
-**Example Generic Feedback**: "Your profile could use more documentation."  
-**Our Feedback**: "Repo `hello-world` has no README. Recruiters will skip it in 3 seconds. Archive it or spend 15 minutes adding a README with: problem, tech stack, and demo link."
-
----
-
-## 📊 How We Score
-
-### Scoring Logic Example: Documentation Quality
-
-```typescript
-// Check README presence in top repos (50 points)
-const topRepos =
-  pinnedRepos.length > 0 ? pinnedRepos : repositories.slice(0, 3);
-const topReposNoReadme = topRepos.filter((r) => !r.has_readme);
-
-if (topReposNoReadme.length >= 2) {
-  // RED FLAG: Missing READMEs in visible repos
-}
-
-// Check README quality (50 points)
-const qualityReadmes = topRepos.filter(
-  (r) => r.has_readme && r.readme_length > 500,
-);
-score += (qualityReadmes.length / topRepos.length) * 50;
-```
-
-This transparent logic helps users understand **exactly** why their score is what it is.
-
----
-
-## 🧠 AI Analysis
-
-We use **Gemini 2.0 Flash Exp** with a carefully crafted prompt that:
-
-1. Provides complete context (repos, metrics, current scores, red flags)
-2. Requests **specific, actionable feedback** (no generic advice)
-3. Demands **brutally honest recruiter perspective**
-4. Returns structured JSON with:
-   - Profile summary (2 sentences)
-   - Recruiter perspective (100 words)
-   - Quick wins (under 1 hour each)
-   - 5-7 prioritized suggestions with impact/effort/time estimates
-
-**Fallback**: If AI fails, we use rule-based suggestions from red flags and low-scoring dimensions.
-
----
-
-## 🔜 Future Enhancements
-
-- [ ] **Before/After Comparison** - Show score improvement after implementing suggestions
-- [ ] **Role-Specific Filtering** - Frontend vs Backend vs Full-Stack lens
-- [ ] **PDF Export** - Downloadable report for applications
-- [ ] **Live Rescoring** - Real-time score updates as changes are made
-- [ ] **Integration with LinkedIn** - Cross-validate portfolio with LinkedIn profile
-
----
-
-## 👥 Contributing
-
-This project was built for the **GitHub Portfolio Analyzer & Enhancer Hackathon** by [UnsaidTalks](https://unsaidtalks.com/).
-
-Contributions, issues, and feature requests are welcome!
-
----
+Built with ❤️ for the **UnsaidTalks Hackathon**.
+We welcome PRs! Please check the [Project Board](https://github.com/users/Md-Juned-45/projects/1) for open issues.
 
 ## 📄 License
 
-MIT License - feel free to use this tool to improve your GitHub portfolio!
-
----
-
-## 🙏 Acknowledgments
-
-- **GitHub API** - For comprehensive repository data
-- **Google Gemini** - For powerful AI-driven insights
-- **UnsaidTalks** - For organizing this hackathon
-- **Next.js & Vercel** - For amazing developer experience
-
----
-
-## 📧 Contact
-
-**Built by**: Juned Pinjari  
-**GitHub**: [@Md-Juned-45](https://github.com/Md-Juned-45)  
-**Hackathon**: GitHub Portfolio Analyzer & Enhancer by UnsaidTalks
+MIT License. Free for everyone to use and learn from.
 
 ---
 
 <div align="center">
-  <strong>⭐ If this tool helped you, consider starring the repo!</strong>
+  <strong>⭐ Star this repo if it helped you land an interview! ⭐</strong>
 </div>

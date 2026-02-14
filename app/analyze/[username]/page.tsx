@@ -49,8 +49,18 @@ interface AnalysisResult {
     public_repos: number;
   };
   score: number;
+  profileType?: string;  // NEW: student/professional/open-source
   dimensions: ScoreDimension[];
-  redFlags: RedFlag[];
+  redFlags?: RedFlag[];  // OPTIONAL: Old scoring engine only
+  topSuggestions?: Array<{  // NEW: From new scoring engine
+    id: string;
+    title: string;
+    points: number;
+    category: string;
+    difficulty: string;
+    timeEstimate: string;
+    priority: string;
+  }>;
   topRepos: Repository[];
   strengths: string[];
   suggestions: Suggestion[];
@@ -62,6 +72,8 @@ interface AnalysisResult {
     originalRepos: number;
     totalStars: number;
     languages: string[];
+    lastCommitDate: string | null;
+    fetchMode?: 'graphql' | 'rest'; // Which API was used
   };
 }
 
@@ -151,7 +163,18 @@ export default function AnalyzePage() {
           >
             ← Returns to Console
           </button>
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
+             {/* Fetch Mode Indicator */}
+             {result.metadata.fetchMode && (
+               <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded ${
+                 result.metadata.fetchMode === 'graphql' 
+                   ? 'bg-emerald-900/30 text-emerald-400 border border-emerald-800/50' 
+                   : 'bg-amber-900/30 text-amber-400 border border-amber-800/50'
+               }`}>
+                 {result.metadata.fetchMode === 'graphql' ? '⚡ Fast mode' : '🔄 Compatibility mode'}
+               </span>
+             )}
+             
              <a href={`https://github.com/${username}`} target="_blank" className="text-neutral-500 hover:text-white text-xs font-mono uppercase tracking-widest transition-colors">
                View Source ↗
              </a>
@@ -175,6 +198,19 @@ export default function AnalyzePage() {
                <div>
                  <h1 className="text-2xl font-bold">{result.user.name || result.user.login}</h1>
                  <p className="text-neutral-500 font-mono text-sm">@{result.user.login}</p>
+                 
+                 {/* NEW: Profile Type Badge */}
+                 {result.profileType && (
+                   <div className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                     result.profileType === 'student' 
+                       ? 'bg-blue-900/30 text-blue-400 border border-blue-800/50' 
+                       : result.profileType === 'open-source'
+                       ? 'bg-purple-900/30 text-purple-400 border border-purple-800/50'
+                       : 'bg-green-900/30 text-green-400 border border-green-800/50'
+                   }`}>
+                     {result.profileType === 'open-source' ? 'OSS Contributor' : result.profileType}
+                   </div>
+                 )}
                </div>
                
                <div className="grid grid-cols-3 gap-4 w-full pt-4 border-t border-neutral-900">
@@ -210,7 +246,7 @@ export default function AnalyzePage() {
                </div>
             </div>
 
-             {/* Red Flags / System Alerts */}
+             {/* Red Flags - DEPRECATED: New scoring engine uses suggestions instead
             {result.redFlags.length > 0 && (
               <div className="card p-6 space-y-4 border-red-900/30 bg-red-950/10">
                 <h3 className="text-red-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
@@ -227,6 +263,7 @@ export default function AnalyzePage() {
                 </div>
               </div>
             )}
+            */}
           </div>
 
           {/* RIGHT COLUMN: Metrics & Insights (8 cols) */}
@@ -263,6 +300,47 @@ export default function AnalyzePage() {
                 </div>
               ))}
             </div>
+
+            {/* NEW: Top Suggestions Cards (from new scoring engine) */}
+            {result.topSuggestions && result.topSuggestions.length > 0 && (
+              <div className="space-y-4 mt-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500">Top Improvements</h2>
+                  <span className="text-xs text-neutral-600">{result.topSuggestions.length} actionable</span>
+                </div>
+                
+                <div className="space-y-3">
+                  {result.topSuggestions.map((suggestion, idx) => (
+                    <div 
+                      key={idx} 
+                      className="card p-4 space-y-2 hover:bg-neutral-900/50 transition-colors border-l-2 border-l-transparent hover:border-l-blue-500"
+                    >
+                      <div className="flex justify-between items-start gap-3">
+                        <h3 className="text-sm font-medium text-white flex-1">{suggestion.title}</h3>
+                        <span className="text-xs font-bold text-blue-400">+{suggestion.points} pts</span>
+                      </div>
+                      
+                      <div className="flex gap-2 items-center text-[10px] text-neutral-500">
+                        <span className={`px-2 py-0.5 rounded uppercase font-bold ${
+                          suggestion.priority === 'critical' ? 'bg-red-900/30 text-red-400' :
+                          suggestion.priority === 'high' ? 'bg-orange-900/30 text-orange-400' :
+                          suggestion.priority === 'medium' ? 'bg-yellow-900/30 text-yellow-400' :
+                          'bg-neutral-900 text-neutral-500'
+                        }`}>
+                          {suggestion.priority}
+                        </span>
+                        <span>•</span>
+                        <span className="capitalize">{suggestion.difficulty}</span>
+                        <span>•</span>
+                        <span>{suggestion.timeEstimate}</span>
+                        <span>•</span>
+                        <span className="text-neutral-600">{suggestion.category}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Recruiter Insight */}
             <div className="card p-6 border-blue-900/30 bg-blue-950/5">

@@ -57,18 +57,26 @@ export class ScoringEngine {
    * 3. Detects red flags (critical issues)
    * 4. Selects top repositories to showcase
    * 5. Identifies key strengths
+   * 6. ENHANCEMENT: Applies experience-level calibration
    * 
    * @param data - Complete GitHub analysis data
    * @returns Portfolio score object with all metrics
    */
   static calculateScore(data: GitHubAnalysisData): PortfolioScore {
+    // ENHANCEMENT: Calculate experience level based on account age
+    const accountAgeYears = this.calculateAccountAge(data.user.created_at);
+    const experienceLevel = this.getExperienceLevel(accountAgeYears);
+    
+    // CRITICAL FIX: Detect "Legend Status" for world-class developers
+    const legendStatus = this.detectLegendStatus(data);
+    
     const dimensions: ScoreDimension[] = [
-      this.scoreDocumentation(data),
-      this.scoreCodeStructure(data),
-      this.scoreActivityConsistency(data),
-      this.scoreRepositoryOrganization(data),
-      this.scoreProjectImpact(data),
-      this.scoreTechnicalDepth(data),
+      this.scoreDocumentation(data, experienceLevel),
+      this.scoreCodeStructure(data, experienceLevel),
+      this.scoreActivityConsistency(data, experienceLevel),
+      this.scoreRepositoryOrganization(data, experienceLevel),
+      this.scoreProjectImpact(data, experienceLevel, legendStatus),
+      this.scoreTechnicalDepth(data, experienceLevel, legendStatus),
     ];
 
     // Calculate weighted total score
@@ -79,6 +87,20 @@ export class ScoringEngine {
     // Detect red flags
     const redFlags = this.detectRedFlags(data);
 
+    // ENHANCEMENT: Apply red flag penalties to actually impact score
+    // LEGEND FIX: Don't penalize legends for red flags (they're infrastructure creators)
+    const redFlagPenalty = legendStatus.isLegend ? 0 : redFlags.reduce((penalty, flag) => {
+      if (flag.severity === 'high') return penalty + 15;
+      if (flag.severity === 'medium') return penalty + 8;
+      return penalty + 3;
+    }, 0);
+
+    // LEGEND FIX: Apply massive boost for legendary impact
+    let finalScore = Math.max(0, totalScore - redFlagPenalty);
+    if (legendStatus.isLegend) {
+      finalScore = Math.max(finalScore, 95); // Minimum 95 for legends
+    }
+
     // Select top repositories to showcase
     const topRepos = this.selectTopRepos(data);
 
@@ -86,7 +108,7 @@ export class ScoringEngine {
     const strengths = this.identifyStrengths(dimensions, data);
 
     return {
-      totalScore,
+      totalScore: finalScore,
       dimensions,
       redFlags,
       topRepos,
@@ -97,7 +119,7 @@ export class ScoringEngine {
   /**
    * Dimension 1: Documentation Quality (20% weight)
    */
-  private static scoreDocumentation(data: GitHubAnalysisData): ScoreDimension {
+  private static scoreDocumentation(data: GitHubAnalysisData, experienceLevel: string): ScoreDimension {
     const { repositories, pinnedRepos } = data;
     const nonForkRepos = repositories.filter((r) => !r.is_fork);
     
@@ -145,7 +167,7 @@ export class ScoringEngine {
   /**
    * Dimension 2: Code Structure (15% weight)
    */
-  private static scoreCodeStructure(data: GitHubAnalysisData): ScoreDimension {
+  private static scoreCodeStructure(data: GitHubAnalysisData, experienceLevel: string): ScoreDimension {
     const { repositories } = data;
     const nonForkRepos = repositories.filter((r) => !r.is_fork);
 
@@ -186,7 +208,7 @@ export class ScoringEngine {
   /**
    * Dimension 3: Activity Consistency (20% weight)
    */
-  private static scoreActivityConsistency(data: GitHubAnalysisData): ScoreDimension {
+  private static scoreActivityConsistency(data: GitHubAnalysisData, experienceLevel: string): ScoreDimension {
     const { activityData } = data;
     let score = 0;
     let feedback = '';
@@ -231,7 +253,7 @@ export class ScoringEngine {
   /**
    * Dimension 4: Repository Organization (15% weight)
    */
-  private static scoreRepositoryOrganization(data: GitHubAnalysisData): ScoreDimension {
+  private static scoreRepositoryOrganization(data: GitHubAnalysisData, experienceLevel: string): ScoreDimension {
     const { user, repositories, pinnedRepos } = data;
     let score = 0;
     let feedback = '';
@@ -271,8 +293,10 @@ export class ScoringEngine {
 
   /**
    * Dimension 5: Project Impact (15% weight)
+   * ENHANCEMENT: Calibrated by experience level
+   * LEGEND FIX: Handles world-class developers properly
    */
-  private static scoreProjectImpact(data: GitHubAnalysisData): ScoreDimension {
+  private static scoreProjectImpact(data: GitHubAnalysisData, experienceLevel: string, legendStatus: { isLegend: boolean; reason: string }): ScoreDimension {
     const { repositories } = data;
     const nonForkRepos = repositories.filter((r) => !r.is_fork);
     let score = 0;
@@ -287,25 +311,34 @@ export class ScoringEngine {
     else if (forkRatio < 50) score += 25;
     else if (forkRatio < 70) score += 10;
 
-    // Check stars/engagement
+    // Check stars/engagement - ENHANCEMENT: Adjust thresholds by experience
     const totalStars = repositories.reduce((sum, r) => sum + r.stars, 0);
-    if (totalStars >= 50) score += 40;
-    else if (totalStars >= 20) score += 30;
-    else if (totalStars >= 5) score += 20;
-    else score += 10;
-
-    // Popular repos
-    const popularRepos = nonForkRepos.filter((r) => r.stars >= 5);
-    score += Math.min(popularRepos.length * 5, 20);
-
-    if (forkRatio > 70) {
-      feedback = `${Math.round(forkRatio)}% of your repos are forks. Recruiters want to see YOUR original projects, not tutorial clones.`;
-    } else if (totalStars === 0) {
-      feedback = `No stars on any repos. Build 1-2 impressive projects that solve real problems people care about.`;
-    } else if (popularRepos.length === 0) {
-      feedback = `No repos with significant engagement. Focus quality over quantity—1 great project beats 10 tutorials.`;
+    
+    // LEGEND FIX: Override for legendary impact
+    if (legendStatus.isLegend || totalStars >= 50000) {
+      score = 100; // Maximum for infrastructure creators
+      feedback = `Legendary impact: ${totalStars.toLocaleString()} stars. Infrastructure-level technology.`;
     } else {
-      feedback = `${popularRepos.length} repos have external validation (stars/forks). Shows real-world impact!`;
+      const starThresholds = this.getStarThresholds(experienceLevel);
+      
+      if (totalStars >= starThresholds.excellent) score += 40;
+      else if (totalStars >= starThresholds.good) score += 30;
+      else if (totalStars >= starThresholds.decent) score += 20;
+      else score += 10;
+
+      // Popular repos
+      const popularRepos = nonForkRepos.filter((r) => r.stars >= 5);
+      score += Math.min(popularRepos.length * 5, 20);
+
+      if (forkRatio > 70) {
+        feedback = `${Math.round(forkRatio)}% of your repos are forks. Recruiters want to see YOUR original projects, not tutorial clones.`;
+      } else if (totalStars === 0) {
+        feedback = `No stars on any repos. Build 1-2 impressive projects that solve real problems people care about.`;
+      } else if (popularRepos.length === 0) {
+        feedback = `No repos with significant engagement. Focus quality over quantity—1 great project beats 10 tutorials.`;
+      } else {
+        feedback = `${popularRepos.length} repos have external validation (stars/forks). Shows real-world impact!`;
+      }
     }
 
     return {
@@ -320,38 +353,71 @@ export class ScoringEngine {
 
   /**
    * Dimension 6: Technical Depth (15% weight)
+   * LEGEND FIX: Recognize systems languages (C, C++, Rust, Go, Assembly)
    */
-  private static scoreTechnicalDepth(data: GitHubAnalysisData): ScoreDimension {
+  private static scoreTechnicalDepth(data: GitHubAnalysisData, experienceLevel: string, legendStatus: { isLegend: boolean; reason: string }): ScoreDimension {
     const { languageStats, repositories } = data;
     let score = 0;
     let feedback = '';
 
-    // Language diversity (50 points)
-    const uniqueLangs = Object.keys(languageStats).length;
-    if (uniqueLangs >= 5) score += 50;
-    else if (uniqueLangs >= 3) score += 35;
-    else if (uniqueLangs >= 2) score += 20;
-    else score += 10;
-
-    // Modern frameworks/tech stack indicators (50 points)
     const nonForkRepos = repositories.filter((r) => !r.is_fork);
-    const modernTopics = ['react', 'vue', 'angular', 'nextjs', 'typescript', 'nodejs', 'docker', 'kubernetes', 'aws'];
-    const modernRepos = nonForkRepos.filter((r) =>
-      r.topics.some((topic) => modernTopics.includes(topic.toLowerCase()))
-    );
-    score += (modernRepos.length / Math.max(nonForkRepos.length, 1)) * 50;
-
     const topLanguages = Object.entries(languageStats)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 3)
       .map(([lang]) => lang);
+    
+    const uniqueLangs = topLanguages.length;
 
-    if (uniqueLangs === 1) {
-      feedback = `Only one language (${topLanguages[0]}). Learn 1-2 complementary technologies to show versatility.`;
-    } else if (modernRepos.length === 0) {
-      feedback = `No modern frameworks detected. Add topics like 'react', 'typescript', or 'docker' to signal current skills.`;
+    // LEGEND FIX: Systems programming gets highest priority (40 points)
+    const systemsLanguages = ['C', 'C++', 'Rust', 'Go', 'Assembly', 'Zig', 'Odin', 'V'];
+    const hasSystemsLanguage = topLanguages.some((lang) => 
+      systemsLanguages.some(sys => lang.toLowerCase().includes(sys.toLowerCase()))
+    );
+    
+    if (hasSystemsLanguage) {
+      score += 40; // Maximum points for kernel/compiler/OS development
+      feedback = `Systems programming expertise (${topLanguages.filter(l => systemsLanguages.some(s => l.toLowerCase().includes(s.toLowerCase()))).join(', ')}). Infrastructure-level development!`;
     } else {
-      feedback = `${uniqueLangs} languages, including ${topLanguages.join(', ')}. Shows technical breadth!`;
+      // Language diversity (25 points) - for non-systems developers
+      if (uniqueLangs >= 5) score += 25;
+      else if (uniqueLangs >= 3) score += 18;
+      else if (uniqueLangs >= 2) score += 12;
+      else score += 5;
+      
+      // Modern languages bonus (15 points)
+      const modernLanguages = ['TypeScript', 'Python', 'Java', 'Kotlin', 'Swift', 'Go'];
+      const hasModernLanguage = topLanguages.some((lang) => 
+        modernLanguages.includes(lang)
+      );
+      if (hasModernLanguage) score += 15;
+      
+      // Web frameworks (reduced to 10 points from 30)
+      const webTopics = ['react', 'vue', 'angular', 'nextjs', 'svelte'];
+      const webRepos = nonForkRepos.filter((r) =>
+        r.topics.some((topic) => webTopics.includes(topic.toLowerCase()))
+      );
+      score += (webRepos.length / Math.max(nonForkRepos.length, 1)) * 10;
+      
+      if (uniqueLangs === 1) {
+        feedback = `Single language (${topLanguages[0]}). Consider learning complementary technologies.`;
+      } else {
+        feedback = `${uniqueLangs} languages including ${topLanguages.slice(0, 3).join(', ')}.`;
+      }
+    }
+
+    // ENHANCEMENT: Code quality bonuses (up to 25 points)
+    let qualityBonus = 0;
+    nonForkRepos.forEach((repo) => {
+      if (repo.code_quality?.hasCI) qualityBonus += 15 / nonForkRepos.length;
+      if (repo.code_quality?.hasTests) qualityBonus += 10 / nonForkRepos.length;
+      if (repo.code_quality?.hasTypeScript) qualityBonus += 8 / nonForkRepos.length;
+      if (repo.code_quality?.hasLinting) qualityBonus += 7 / nonForkRepos.length;
+    });
+    score += Math.min(qualityBonus, 25);
+
+    // LEGEND BOOST: If legendary status, ensure high technical score
+    if (legendStatus.isLegend && score < 85) {
+      score = 90; // Legends get minimum 90 on technical depth
+      feedback = `${feedback} [Legend Status: ${legendStatus.reason}]`;
     }
 
     return {
@@ -497,5 +563,80 @@ export class ScoringEngine {
     }
 
     return strengths.length > 0 ? strengths : ['Keep building!'];
+  }
+
+  /**
+   * ENHANCEMENT: Calculate account age in years
+   */
+  private static calculateAccountAge(createdAt: string): number {
+    const created = new Date(createdAt);
+    const now = new Date();
+    return (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24 * 365);
+  }
+
+  /**
+   * ENHANCEMENT: Determine experience level based on account age
+   */
+  private static getExperienceLevel(ageYears: number): string {
+    if (ageYears < 1) return 'beginner';
+    if (ageYears < 3) return 'intermediate';
+    if (ageYears < 5) return 'advanced';
+    return 'expert';
+  }
+
+  /**
+   * LEGEND FIX: Detect world-class "Legend Status" developers
+   * Criteria: 100K+ total stars OR 50K+ followers
+   * Examples: Linus Torvalds, tj (TJ Holowaychuk), sindresorhus
+   */
+  private static detectLegendStatus(data: GitHubAnalysisData): {
+    isLegend: boolean;
+    reason: string;
+  } {
+    const { user, repositories } = data;
+    const totalStars = repositories.reduce((sum, r) => sum + r.stars, 0);
+    
+    // Check for legendary impact
+    if (totalStars >= 100000) {
+      return {
+        isLegend: true,
+        reason: `Infrastructure-level impact: ${totalStars.toLocaleString()} stars across projects`
+      };
+    }
+    
+    if (user.followers >= 50000) {
+      return {
+        isLegend: true,
+        reason: `Industry leader: ${user.followers.toLocaleString()} followers`
+      };
+    }
+    
+    // Check for single legendary project (50K+ stars)
+    const hasLegendaryProject = repositories.some((r) => r.stars >= 50000);
+    if (hasLegendaryProject) {
+      return {
+        isLegend: true,
+        reason: `Created industry-changing technology`
+      };
+    }
+    
+    return { isLegend: false, reason: '' };
+  }
+
+  /**
+   * ENHANCEMENT: Get calibrated star thresholds by experience level
+   */
+  private static getStarThresholds(experienceLevel: string): {
+    excellent: number;
+    good: number;
+    decent: number;
+  } {
+    const thresholds = {
+      beginner: { excellent: 10, good: 5, decent: 2 },
+      intermediate: { excellent: 30, good: 15, decent: 5 },
+      advanced: { excellent: 75, good: 35, decent: 15 },
+      expert: { excellent: 150, good: 75, decent: 30 },
+    };
+    return thresholds[experienceLevel as keyof typeof thresholds] || thresholds.intermediate;
   }
 }

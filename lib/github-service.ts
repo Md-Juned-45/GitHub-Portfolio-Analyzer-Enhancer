@@ -58,6 +58,13 @@ export interface Repository {
   readme_length?: number;      // README character count (quality indicator)
   is_fork: boolean;            // Whether this is a forked repository
   open_issues: number;         // Number of open issues
+  homepage?: string | null;    // Homepage URL (for live demo detection)
+  code_quality?: {             // ENHANCEMENT: Code quality indicators
+    hasCI: boolean;            // Has CI/CD workflows
+    hasTests: boolean;         // Has test directory
+    hasTypeScript: boolean;    // Uses TypeScript
+    hasLinting: boolean;       // Has linting config
+  };
 }
 
 export interface GitHubAnalysisData {
@@ -108,6 +115,9 @@ export class GitHubService {
             // README doesn't exist
           }
 
+          // ENHANCEMENT: Detect code quality indicators
+          const code_quality = await this.detectCodeQuality(username, repo.name);
+
           return {
             name: repo.name,
             description: repo.description,
@@ -123,6 +133,8 @@ export class GitHubService {
             readme_length,
             is_fork: repo.fork || false,
             open_issues: repo.open_issues_count || 0,
+            homepage: repo.homepage || null,  // NEW: For live demo detection
+            code_quality,
           };
         })
       );
@@ -298,6 +310,81 @@ export class GitHubService {
         activeDays: 0,
       };
     }
+  }
+
+  /**
+   * ENHANCEMENT: Detect code quality indicators
+   * Checks for CI/CD, tests, TypeScript, linting
+   */
+  private static async detectCodeQuality(
+    owner: string,
+    repo: string
+  ): Promise<{
+    hasCI: boolean;
+    hasTests: boolean;
+    hasTypeScript: boolean;
+    hasLinting: boolean;
+  }> {
+    const quality = {
+      hasCI: false,
+      hasTests: false,
+      hasTypeScript: false,
+      hasLinting: false,
+    };
+
+    try {
+      // Check for .github/workflows (CI/CD)
+      try {
+        await octokit.repos.getContent({
+          owner,
+          repo,
+          path: '.github/workflows',
+        });
+        quality.hasCI = true;
+      } catch {
+        // No workflows directory
+      }
+
+      // Check for test directories
+      const testPaths = ['test', 'tests', '__tests__', 'spec'];
+      for (const path of testPaths) {
+        try {
+          await octokit.repos.getContent({ owner, repo, path });
+          quality.hasTests = true;
+          break;
+        } catch {
+          // Path doesn't exist
+        }
+      }
+
+      // Check for tsconfig.json (TypeScript)
+      try {
+        await octokit.repos.getContent({
+          owner,
+          repo,
+          path: 'tsconfig.json',
+        });
+        quality.hasTypeScript = true;
+      } catch {
+        // No TypeScript
+      }
+
+      // Check for linting config
+      const lintFiles = ['.eslintrc', '.eslintrc.js', '.eslintrc.json', 'prettier.config.js', '.prettierrc'];
+      for (const file of lintFiles) {
+        try {
+          await octokit.repos.getContent({ owner, repo, path: file });
+          quality.hasLinting = true;
+          break;
+        } catch {
+          // File doesn't exist
+        }
+      }
+    } catch {
+      // If any major error, return defaults
+    }
+
+    return quality;
   }
 
   /**
