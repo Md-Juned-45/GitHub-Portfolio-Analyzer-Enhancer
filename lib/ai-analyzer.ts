@@ -39,11 +39,20 @@ export interface ActionableSuggestion {
   timeEstimate: string;
 }
 
+export interface ProjectIdea {
+  title: string;
+  description: string;
+  techStack: string[];
+}
+
 export interface AIInsights {
   suggestions: ActionableSuggestion[];
   recruiterPerspective: string;
   quickWins: string[];
   profileSummary: string;
+  modelUsed?: string;
+  profileTag?: string; // NEW: Sarcastic tag
+  projectIdeas?: ProjectIdea[]; // NEW: Tech-stack based ideas
 }
 
 export class AIAnalyzer {
@@ -54,18 +63,63 @@ export class AIAnalyzer {
     data: GitHubAnalysisData,
     score: PortfolioScore
   ): Promise<AIInsights> {
+    const prompt = this.buildAnalysisPrompt(data, score);
+
+    // 1. Try Cerebras (Llama 3.3) if API key is present
+    if (process.env.CEREBRAS_API_KEY) {
+      try {
+        console.log('Using Cerebras Llama 3.3 for analysis...');
+        const result = await this.generateCerebrasInsights(prompt);
+        return {
+          ...this.parseAIResponse(result),
+          modelUsed: 'Cerebras Llama 3.3'
+        };
+      } catch (error) {
+        console.error('Cerebras analysis failed, falling back to Gemini:', error);
+      }
+    }
+
+    // 2. Fallback to Gemini 2.0 Flash
     try {
-      const prompt = this.buildAnalysisPrompt(data, score);
+      console.log('Using Gemini 2.0 Flash for analysis...');
       const result = await model.generateContent(prompt);
       const response = result.response.text();
-
-      // Parse the AI response
-      return this.parseAIResponse(response);
+      return {
+        ...this.parseAIResponse(response),
+        modelUsed: 'Gemini 2.0 Flash'
+      };
     } catch (error) {
-      console.error('AI analysis error:', error);
-      // Fallback to rule-based suggestions
+      console.error('Gemini analysis error:', error);
+      // 3. Fallback to rule-based suggestions
       return this.generateFallbackInsights(data, score);
     }
+  }
+
+  /**
+   * Generate insights using Cerebras API (Llama 3.3)
+   */
+  private static async generateCerebrasInsights(prompt: string): Promise<string> {
+    const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CEREBRAS_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b', 
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 4000,
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Cerebras API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '{}';
   }
 
   /**
@@ -131,9 +185,17 @@ ${redFlagsText}
 TASK: Generate insights in this EXACT JSON format (no markdown, just raw JSON):
 
 {
+  "profileTag": "<2-3 word sarcastic/witty profile tag, e.g. 'Tutorial Hoarder', 'Framework Hopper', 'Docs Avoider'>",
   "profileSummary": "<2-sentence first impression a recruiter would have>",
   "recruiterPerspective": "<100-word analysis: what stands out positively, what raises concerns, overall hiring signal>",
   "quickWins": ["<specific action>", "<specific action>", "<specific action>"],
+  "projectIdeas": [
+    {
+      "title": "<Project Title>",
+      "description": "<One sentence description of a project NOT in their repos, based on their tech stack>",
+      "techStack": ["<Tech1>", "<Tech2>"]
+    }
+  ],
   "suggestions": [
     {
       "title": "<specific action>",
@@ -152,8 +214,9 @@ CRITICAL RULES:
 3. Be brutally honest about red flags—recruiters are
 4. Mention actual repo names when giving feedback
 5. Quick wins should be actionable in under 1 hour each
-6. Generate 5-7 suggestions total, sorted by impact/effort ratio
-7. Return ONLY valid JSON, no markdown code blocks
+6. Generate 3 distinct project ideas that use their existing skills but fill gap
+7. Generate 5-7 suggestions total, sorted by impact/effort ratio
+8. Return ONLY valid JSON, no markdown code blocks
 
 Generate the JSON now:`;
 
@@ -180,6 +243,8 @@ Generate the JSON now:`;
         recruiterPerspective: parsed.recruiterPerspective || '',
         quickWins: parsed.quickWins || [],
         profileSummary: parsed.profileSummary || '',
+        profileTag: parsed.profileTag,
+        projectIdeas: parsed.projectIdeas || []
       };
     } catch (error) {
       console.error('Failed to parse AI response:', error);

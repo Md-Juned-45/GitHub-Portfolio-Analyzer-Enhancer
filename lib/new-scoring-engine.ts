@@ -149,6 +149,15 @@ export class NewScoringEngine {
     
     return weights[profileType] || weights.professional;
   }
+
+  /**
+   * Helper: Check if a repo is a real project (not a zero-contribution fork)
+   */
+  private static isRealProject(repo: Repository): boolean {
+    if (!repo.is_fork) return true;
+    // It's a fork, so check if user contributed
+    return (repo.authored_commit_count || 0) > 0;
+  }
   
   /**
    * Select top 6 repos for scoring (pinned first, then recent)
@@ -180,7 +189,7 @@ export class NewScoringEngine {
     const suggestions: DetailedSuggestion[] = [];
     
     // README quality (50 points)
-    const reposWithReadme = scoredRepos.filter(r => r.has_readme);
+    const reposWithReadme = scoredRepos.filter(r => r.has_readme && this.isRealProject(r));
     const readmeScore = (reposWithReadme.length / Math.max(scoredRepos.length, 1)) * 50;
     score += readmeScore;
     
@@ -189,7 +198,7 @@ export class NewScoringEngine {
         id: 'add-readme',
         title: `Add READMEs to ${scoredRepos.length - reposWithReadme.length} repos`,
         points: Math.round((scoredRepos.length - reposWithReadme.length) * 8),
-        category: 'Code Quality',
+        category: 'Code Professionalism', // Renamed from Code Quality
         difficulty: 'easy',
         timeEstimate: '15 min per repo',
         priority: 'critical',
@@ -197,7 +206,7 @@ export class NewScoringEngine {
     }
     
     // Code organization (30 points)
-    const organizedRepos = scoredRepos.filter(r => r.description && r.topics.length > 0);
+    const organizedRepos = scoredRepos.filter(r => r.description && r.topics.length > 0 && this.isRealProject(r));
     score += (organizedRepos.length / Math.max(scoredRepos.length, 1)) * 30;
     
     if (organizedRepos.length < scoredRepos.length) {
@@ -205,7 +214,7 @@ export class NewScoringEngine {
         id: 'add-descriptions',
         title: 'Add descriptions and topics to repos',
         points: 5,
-        category: 'Code Quality',
+        category: 'Code Professionalism',
         difficulty: 'easy',
         timeEstimate: '5 min',
         priority: 'high',
@@ -213,7 +222,7 @@ export class NewScoringEngine {
     }
     
     // Linting/formatting (20 points)
-    const reposWithLinting = scoredRepos.filter(r => r.code_quality?.hasLinting);
+    const reposWithLinting = scoredRepos.filter(r => r.code_quality?.hasLinting && this.isRealProject(r));
     score += (reposWithLinting.length / Math.max(scoredRepos.length, 1)) * 20;
     
     if (reposWithLinting.length === 0) {
@@ -221,7 +230,7 @@ export class NewScoringEngine {
         id: 'add-linting',
         title: 'Add ESLint or Prettier configuration',
         points: 6,
-        category: 'Code Quality',
+        category: 'Code Professionalism',
         difficulty: 'easy',
         timeEstimate: '10 min',
         priority: 'medium',
@@ -233,7 +242,7 @@ export class NewScoringEngine {
       : `${scoredRepos.length - reposWithReadme.length} repos need READMEs`;
     
     return {
-      name: 'Code Quality',
+      name: 'Code Professionalism', // User-facing rename
       score: Math.round(score),
       weight,
       feedback,
@@ -255,11 +264,12 @@ export class NewScoringEngine {
     
     // Live demo detection (7 points per repo, up to 35)
     const reposWithDemo = scoredRepos.filter(r => 
+      this.isRealProject(r) && (
       r.readme_content?.toLowerCase().includes('vercel.app') ||
       r.readme_content?.toLowerCase().includes('netlify.app') ||
       r.readme_content?.toLowerCase().includes('github.io') ||
       r.homepage
-    );
+    ));
     score += Math.min(reposWithDemo.length * 7, 35);
     
     if (reposWithDemo.length === 0) {
@@ -267,7 +277,7 @@ export class NewScoringEngine {
         id: 'deploy-project',
         title: 'Deploy 1-2 projects to Vercel or Netlify',
         points: 14,
-        category: 'Project Impact',
+        category: 'Project Storytelling', // Renamed from Project Impact
         difficulty: 'easy',
         timeEstimate: '10 min',
         priority: 'critical',
@@ -276,10 +286,11 @@ export class NewScoringEngine {
     
     // Project storytelling (35 points)
     const reposWithStory = scoredRepos.filter(r =>
+      this.isRealProject(r) && (
       r.readme_content?.toLowerCase().includes('why i built') ||
       r.readme_content?.toLowerCase().includes('problem') ||
       r.readme_content?.toLowerCase().includes('motivation')
-    );
+    ));
     score += (reposWithStory.length / Math.max(scoredRepos.length, 1)) * 35;
     
     if (reposWithStory.length < 2) {
@@ -287,7 +298,7 @@ export class NewScoringEngine {
         id: 'add-storytelling',
         title: 'Add "Why I Built This" section to READMEs',
         points: 7,
-        category: 'Project Impact',
+        category: 'Project Storytelling',
         difficulty: 'easy',
         timeEstimate: '15 min',
         priority: 'high',
@@ -341,7 +352,7 @@ export class NewScoringEngine {
           id: 'commit-recently',
           title: 'Make at least 1 commit this month',
           points: 10,
-          category: 'Current & Active',
+          category: 'Coding Consistency',
           difficulty: 'easy',
           timeEstimate: '1 hour',
           priority: 'critical',
@@ -361,7 +372,7 @@ export class NewScoringEngine {
         id: 'commit-consistently',
         title: 'Commit at least once per week for 1 month',
         points: 15,
-        category: 'Current & Active',
+        category: 'Coding Consistency',
         difficulty: 'medium',
         timeEstimate: 'Ongoing',
         priority: 'high',
@@ -373,7 +384,7 @@ export class NewScoringEngine {
       : `Low activity (${Math.round(commitFrequency)}/month). Code regularly to show current skills.`;
     
     return {
-      name: 'Current & Active',
+      name: 'Coding Consistency', // User-facing rename
       score: Math.round(score),
       weight,
       feedback,
@@ -403,7 +414,7 @@ export class NewScoringEngine {
         id: 'add-cicd',
         title: 'Add GitHub Actions CI/CD workflow',
         points: 25,
-        category: 'Production Readiness',
+        category: 'Deployment Maturity',
         difficulty: 'easy',
         timeEstimate: '10 min',
         priority: 'medium',
@@ -419,7 +430,7 @@ export class NewScoringEngine {
         id: 'add-tests',
         title: 'Add basic tests to 1-2 projects',
         points: 20,
-        category: 'Production Readiness',
+        category: 'Deployment Maturity',
         difficulty: 'medium',
         timeEstimate: '30 min',
         priority: 'medium',
@@ -434,7 +445,7 @@ export class NewScoringEngine {
       : 'Add CI/CD and tests to show professional workflows (optional for students)';
     
     return {
-      name: 'Production Readiness',
+      name: 'Deployment Maturity', // User-facing rename
       score: Math.min(score, 100),
       weight,
       feedback,
@@ -455,8 +466,11 @@ export class NewScoringEngine {
     const suggestions: DetailedSuggestion[] = [];
     const { languageStats } = data;
     
-    const topLanguages = Object.keys(languageStats);
-    const uniqueLangs = topLanguages.length;
+    // 0xarchit Integration: Filter out zero-contribution forks for language stats
+    const realRepos = scoredRepos.filter(r => this.isRealProject(r));
+    const languageSet = new Set(realRepos.map(r => r.language).filter((l): l is string => !!l));
+    const uniqueLangs = languageSet.size;
+    const topLanguages = Array.from(languageSet);
     
     // Language diversity (40 points)
     if (uniqueLangs >= 5) score += 40;
@@ -469,7 +483,7 @@ export class NewScoringEngine {
         id: 'learn-language',
         title: 'Learn a complementary language (e.g., TypeScript, Python)',
         points: 10,
-        category: 'Technical Skill',
+        category: 'Tech Stack Depth', // Renamed from Technical Skill
         difficulty: 'hard',
         timeEstimate: '1-2 months',
         priority: 'low',
@@ -493,7 +507,7 @@ export class NewScoringEngine {
       : `Limited to ${topLanguages[0]}. Learn 1-2 more languages.`;
     
     return {
-      name: 'Technical Skill',
+      name: 'Tech Stack Depth', // User-facing rename
       score: Math.round(score),
       weight,
       feedback,
@@ -521,7 +535,7 @@ export class NewScoringEngine {
         id: 'create-issues',
         title: 'Create issues for feature ideas in your repos',
         points: 3,
-        category: 'Community Trust',
+        category: 'Collaboration Signals',
         difficulty: 'easy',
         timeEstimate: '10 min',
         priority: 'low',
@@ -547,7 +561,7 @@ export class NewScoringEngine {
       : 'Build impressive projects to earn stars (not critical for students)';
     
     return {
-      name: 'Community Trust',
+      name: 'Collaboration Signals', // User-facing rename
       score,
       weight,
       feedback,

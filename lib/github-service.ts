@@ -58,6 +58,7 @@ export interface Repository {
   readme_length?: number;      // README character count (quality indicator)
   is_fork: boolean;            // Whether this is a forked repository
   open_issues: number;         // Number of open issues
+  authored_commit_count?: number; // Number of commits by the user (crucial for forks)
   homepage?: string | null;    // Homepage URL (for live demo detection)
   code_quality?: {             // ENHANCEMENT: Code quality indicators
     hasCI: boolean;            // Has CI/CD workflows
@@ -78,6 +79,7 @@ export interface GitHubAnalysisData {
     commitFrequency: number; // commits per month average over last 6 months
     activeDays: number;
   };
+  badges?: string[]; // Gamification badges (pull-shark, yolo, etc.)
 }
 
 export class GitHubService {

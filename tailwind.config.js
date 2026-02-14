@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -8,6 +9,14 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        page: 'var(--bg-page)',
+        card: 'var(--bg-card)',
+        'card-hover': 'var(--bg-card-hover)',
+        'border-subtle': 'var(--border-subtle)',
+        'border-highlight': 'var(--border-highlight)',
+        'text-primary': 'var(--text-primary)',
+        'text-secondary': 'var(--text-secondary)',
+        'text-tertiary': 'var(--text-tertiary)',
         primary: {
           50: '#f0f9ff',
           100: '#e0f2fe',
@@ -23,6 +32,16 @@ module.exports = {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.4s ease-out forwards',
+        'pulse-slow': 'pulse 3s infinite',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
     },
   },

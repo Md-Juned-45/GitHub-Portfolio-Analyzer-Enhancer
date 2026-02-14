@@ -101,9 +101,15 @@ We don't just say "Fix your docs." We say:
    ```env
    # Get from https://github.com/settings/tokens
    GITHUB_TOKEN=your_github_pat_here
+   # Optional: Comma-separated tokens to multiply rate limits (Layer 4)
+   GITHUB_TOKENS=token1,token2,token3
 
    # Get from https://aistudio.google.com/app/apikey
    GEMINI_API_KEY=your_gemini_key_here
+
+   # Optional: Get from https://inference.cerebras.ai
+   # Uses Llama 3.3 for hybrid analysis (Layer 5)
+   CEREBRAS_API_KEY=your_cerebras_key_here
    ```
 
 3. **Run Locally**

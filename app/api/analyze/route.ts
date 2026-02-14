@@ -64,22 +64,26 @@ export async function GET(request: NextRequest) {
     const result = {
       user: githubData.user,
       score: portfolioScore.totalScore,
-      profileType: portfolioScore.profileType,  // NEW: student/professional/OSS
+      profileType: portfolioScore.profileType,
+      badges: githubData.badges || [], // NEW: Gamification
       dimensions: portfolioScore.dimensions,
       topRepos: portfolioScore.topRepos,
       strengths: portfolioScore.strengths,
-      topSuggestions: portfolioScore.topSuggestions,  // NEW: Actionable improvements
+      topSuggestions: portfolioScore.topSuggestions,
       suggestions: aiInsights.suggestions,
       recruiterPerspective: aiInsights.recruiterPerspective,
       quickWins: aiInsights.quickWins,
       profileSummary: aiInsights.profileSummary,
+      profileTag: aiInsights.profileTag, // NEW: Sarcastic tag
+      projectIdeas: aiInsights.projectIdeas, // NEW: Project ideas
       metadata: {
         totalRepos: githubData.repositories.length,
         originalRepos: githubData.repositories.filter((r) => !r.is_fork).length,
         totalStars: githubData.repositories.reduce((sum, r) => sum + r.stars, 0),
         languages: Object.keys(githubData.languageStats),
         lastCommitDate: githubData.activityData.lastCommitDate,
-        fetchMode, // Which API mode was used (graphql/rest)
+        fetchMode,
+        aiModel: aiInsights.modelUsed, // NEW: Hybrid AI tracking
       },
     };
 

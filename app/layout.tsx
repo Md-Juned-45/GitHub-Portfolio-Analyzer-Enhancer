@@ -9,14 +9,20 @@ export const metadata: Metadata = {
   description: 'Analyze your GitHub profile and get actionable feedback from a recruiter\'s perspective. Find out what makes your portfolio stand out.',
 }
 
+import { ThemeProvider } from './providers'
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   )
 }

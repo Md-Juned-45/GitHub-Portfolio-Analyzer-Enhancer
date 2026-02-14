@@ -12,13 +12,40 @@
 import { GitHubAnalysisData, Repository, GitHubUser } from './github-service';
 
 const GITHUB_GRAPHQL = 'https://api.github.com/graphql';
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
+
+/**
+ * 0xarchit Pattern: Token Rotation
+ * Rotates through multiple GitHub tokens to multiply rate limits.
+ */
+const getGitHubToken = () => {
+  // Check for rotated tokens first
+  if (process.env.GITHUB_TOKENS) {
+    const tokens = process.env.GITHUB_TOKENS.split(',').filter(t => t.trim().length > 0);
+    if (tokens.length > 0) {
+      // Pick a random token to distribute load
+      return tokens[Math.floor(Math.random() * tokens.length)].trim();
+    }
+  }
+  // Fallback to single token
+  return process.env.GITHUB_TOKEN || '';
+};
+
+/**
+ * Query to fetch user ID first (needed for commit filtering)
+ */
+const GET_USER_ID_QUERY = `
+  query GetUserId($username: String!) {
+    user(login: $username) {
+      id
+    }
+  }
+`;
 
 /**
  * GraphQL query to fetch complete profile data in one request
  */
 const PROFILE_QUERY = `
-  query GetGitHubProfile($username: String!) {
+  query GetGitHubProfile($username: String!, $authorId: ID!) {
     user(login: $username) {
       login
       name
@@ -96,7 +123,7 @@ const PROFILE_QUERY = `
               ... on Blob { oid }
             }
             
-            # Commit history
+            # Commit history (general)
             defaultBranchRef {
               target {
                 ... on Commit {
@@ -105,6 +132,10 @@ const PROFILE_QUERY = `
                     nodes {
                       committedDate
                     }
+                  }
+                  # Check if user actually contributed (for forks)
+                  authoredBy: history(first: 1, author: {id: $authorId}) {
+                    totalCount
                   }
                 }
               }
@@ -168,6 +199,10 @@ const PROFILE_QUERY = `
                   totalCount
                   nodes { committedDate }
                 }
+                # Check if user actually contributed (for forks)
+                authoredBy: history(first: 1, author: {id: $authorId}) {
+                  totalCount
+                }
               }
             }
           }
@@ -185,16 +220,44 @@ export class GraphQLGitHubService {
    */
   static async fetchUserData(username: string): Promise<GitHubAnalysisData> {
     try {
-      // Single GraphQL query fetches everything
+      // Step 1: Fetch User ID first (needed for commit filtering)
+      const idResponse = await fetch(GITHUB_GRAPHQL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${getGitHubToken()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: GET_USER_ID_QUERY,
+          variables: { username }
+        })
+      });
+
+      if (!idResponse.ok) {
+        throw new Error(`GraphQL ID request failed: ${idResponse.statusText}`);
+      }
+
+      const idData = await idResponse.json();
+      if (idData.errors || !idData.data?.user?.id) {
+        // Fallback: If we can't get ID, we can't filter commits by author. 
+        // We could proceed without it but let's throw to trigger REST fallback if strictly needed
+        // OR we can just pass null and handle it? 
+        // The query requires $authorId : ID! so we must have it.
+        throw new Error('Could not resolve User ID for commit filtering');
+      }
+
+      const authorId = idData.data.user.id;
+
+      // Step 2: Single GraphQL query fetches everything using authorId
       const response = await fetch(GITHUB_GRAPHQL, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${GITHUB_TOKEN}`,
+          'Authorization': `Bearer ${getGitHubToken()}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           query: PROFILE_QUERY,
-          variables: { username }
+          variables: { username, authorId }
         })
       });
 
@@ -254,12 +317,16 @@ export class GraphQLGitHubService {
       // Calculate language stats
       const languageStats = this.calculateLanguageStats(repositories);
 
+      // Detect badges (0xarchit pattern)
+      const badges = await this.detectBadges(username);
+
       return {
         user,
         repositories,
         pinnedRepos: pinnedRepoNames,
         totalCommits: activityData.totalCommits,
         languageStats,
+        badges, // NEW: Gamification badges
         activityData: {
           lastCommitDate: activityData.lastCommitDate,
           commitFrequency: activityData.commitFrequency,
@@ -290,6 +357,9 @@ export class GraphQLGitHubService {
       hasLinting: !!(repo.eslintrc || repo.eslintJson || repo.prettierrc),
     };
 
+    // Extract authored commit count (from our smart filtering)
+    const authored_commit_count = repo.defaultBranchRef?.target?.authoredBy?.totalCount || 0;
+
     return {
       name: repo.name,
       description: repo.description,
@@ -304,6 +374,7 @@ export class GraphQLGitHubService {
       readme_content: readmeContent,
       readme_length: readmeLength,
       is_fork: repo.isFork || false,
+      authored_commit_count, // NEW: Real contribution tracking
       open_issues: repo.issues?.totalCount || 0,
       homepage: repo.homepageUrl,
       code_quality,
@@ -351,6 +422,34 @@ export class GraphQLGitHubService {
       commitFrequency,
       activeDays,
     };
+  }
+
+  /**
+   * Check if a user has a specific GitHub achievement badge
+   * Uses HEAD request to avoid API costs (0xarchit pattern)
+   */
+  private static async checkAchievementStatus(username: string, slug: string): Promise<string | null> {
+    try {
+      const url = `https://github.com/${username}?tab=achievements&achievement=${slug}`;
+      const res = await fetch(url, { method: 'HEAD' });
+      return res.status === 200 ? slug : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
+   * Detect all supported badges in parallel
+   */
+  private static async detectBadges(username: string): Promise<string[]> {
+    const BADGES = ['pull-shark', 'yolo', 'quickdraw', 'famed-user', 'pair-extraordinaire', 'starstruck'];
+    
+    // Run all checks in parallel
+    const results = await Promise.all(
+      BADGES.map(slug => this.checkAchievementStatus(username, slug))
+    );
+    
+    return results.filter((slug): slug is string => slug !== null);
   }
 
   /**
